@@ -10,6 +10,7 @@ import { Plus, ArrowUp, X, Check as CheckIcon, Trash2, ChevronDown, MoreHorizont
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pill, Tx } from '../components/primitives';
+import { VYBChip, VYBCheckCircle } from '../components/ui';
 import { colors as C, fonts as F, KEYBOARD_GAP } from '../theme';
 import { useAuth } from '../lib/auth';
 import {
@@ -387,12 +388,25 @@ export function TasksScreen() {
 
       {/* Primary filters — sits above the scrolling board so it stays put. */}
       <View style={{ paddingHorizontal: 22, paddingBottom: 12, flexDirection: 'row', gap: 6 }}>
-        {(['all', 'urgent', 'important', 'later'] as Filter[]).map(f => (
-          <Pill key={f} selected={filter === f} color="gold" size="md"
-            onPress={() => { Keyboard.dismiss(); hSelection(); setFilter(f); }}>
-            {FILTER_LABEL[f]}
-          </Pill>
-        ))}
+        {(['all', 'urgent', 'important', 'later'] as Filter[]).map(f => {
+          // Each filter chip uses its semantic priority tone so 'urgent'
+          // reads clay, 'important' gold, 'later' sage — calm, not alarming.
+          const tone =
+            f === 'urgent'    ? 'urgent' :
+            f === 'important' ? 'important' :
+            f === 'later'     ? 'later' :
+                                'gold';
+          return (
+            <VYBChip
+              key={f}
+              label={FILTER_LABEL[f]}
+              tone={tone}
+              selected={filter === f}
+              size="md"
+              onPress={() => { Keyboard.dismiss(); hSelection(); setFilter(f); }}
+            />
+          );
+        })}
       </View>
 
       {/* Board */}
@@ -939,15 +953,8 @@ function TaskRow({
       }} />
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        {/* Habits-style completion circle. */}
-        <Pressable onPress={onToggle} hitSlop={10} style={{
-          width: 26, height: 26, borderRadius: 13,
-          backgroundColor: task.done ? C.gold : 'transparent',
-          borderColor: task.done ? C.gold : C.borderMid, borderWidth: 1.5,
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          {task.done && <Text style={{ color: C.bgBase, fontFamily: F.sansBold, fontSize: 14, lineHeight: 16 }}>✓</Text>}
-        </Pressable>
+        {/* Shared completion circle — gold fill + check pop, same as Habits + Dashboard. */}
+        <VYBCheckCircle checked={task.done} onPress={onToggle} />
 
         {/* Tap text → inline rename. flexShrink so the right action area gets
             priority when there's not enough room. */}

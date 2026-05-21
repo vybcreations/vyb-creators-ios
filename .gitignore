@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Design handoff zip (rebuild on demand)
+vyb-design-handoff.zip
