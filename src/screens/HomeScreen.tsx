@@ -1,19 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, ScrollView, Pressable, Alert, Modal, Image, ActivityIndicator,
-  Animated, Easing, LayoutAnimation, Platform, UIManager,
+  LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  CheckSquare, Flame, BookOpen, Lightbulb, Timer, Camera, ChevronRight,
-  Image as ImageIcon, CheckCircle2, Plus, Trophy, Lock,
+  Flame, Timer, Camera, ChevronRight,
+  Image as ImageIcon, CheckCircle2, Trophy, Lock,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import { AnimatedHabitTitle, AnimatedHabitCheck } from '../components/AnimatedHabitTitle';
-
-const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
+import { AnimatedHabitTitle } from '../components/AnimatedHabitTitle';
+import {
+  VYBCard, VYBProgressRing, VYBCheckCircle, VYBBookCover, VYBEmpty, VYBToggle,
+} from '../components/ui';
 
 // Enable LayoutAnimation on Android (no-op on iOS where it's on by default).
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -234,11 +234,11 @@ export function HomeScreen({ navigation }: any) {
         <View style={{ paddingHorizontal: 16, marginTop: 22 }}>
           <SectionLabel style={{ marginLeft: 4, marginBottom: 8 }}>tasks that matter</SectionLabel>
           {urgentTasks.length === 0 && importantTasks.length === 0 && completedTodayTasks.length === 0 ? (
-            <EmptyCard
+            <VYBEmpty
               title="Nothing urgent."
               body="Choose one meaningful task and move it forward."
-              ctaLabel="Open Tasks"
-              onPress={() => navigation.navigate('tasks')}
+              actionLabel="Open Tasks"
+              onAction={() => navigation.navigate('tasks')}
             />
           ) : (
             <View style={{ gap: 10 }}>
@@ -272,22 +272,32 @@ export function HomeScreen({ navigation }: any) {
         <View style={{ paddingHorizontal: 16, marginTop: 22 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <SectionLabel style={{ marginLeft: 4 }}>habits</SectionLabel>
-            <HabitsViewToggle value={habitsView} onChange={(v) => {
-              LayoutAnimation.configureNext(SHEET_LAYOUT);
-              setHabitsView(v);
-            }} />
+            <VYBToggle
+              tone="gold"
+              variant="subtle"
+              size="sm"
+              value={habitsView}
+              onChange={(v) => {
+                LayoutAnimation.configureNext(SHEET_LAYOUT);
+                setHabitsView(v as 'today' | 'week');
+              }}
+              options={[
+                { label: 'Today', value: 'today' },
+                { label: 'Week',  value: 'week' },
+              ]}
+            />
           </View>
 
           {habitsView === 'today' ? (
             todayHabitsAll.length === 0 ? (
-              <EmptyCard
+              <VYBEmpty
                 title="No habits planned for today."
                 body="Go to Habits to build your daily system."
-                ctaLabel="Open Habits"
-                onPress={() => navigation.navigate('habits')}
+                actionLabel="Open Habits"
+                onAction={() => navigation.navigate('habits')}
               />
             ) : (
-              <WidgetCard
+              <VYBCard level="widget"
                 padding={0}
                 accent={habitsTotal > 0 && habitsDone >= habitsTotal ? 'sage' : undefined}
               >
@@ -297,7 +307,7 @@ export function HomeScreen({ navigation }: any) {
                     paddingVertical: 12, paddingHorizontal: 14,
                     borderTopColor: C.borderSubtle, borderTopWidth: i === 0 ? 0 : 1,
                   }}>
-                    <AnimatedHabitCheck done={h.todayDone} />
+                    <VYBCheckCircle checked={h.todayDone} />
                     <View style={{ flex: 1 }}>
                       <AnimatedHabitTitle
                         name={h.name}
@@ -328,7 +338,7 @@ export function HomeScreen({ navigation }: any) {
                     </Text>
                   </Pressable>
                 )}
-              </WidgetCard>
+              </VYBCard>
             )
           ) : (
             <WeeklyHabitsGrid
@@ -342,11 +352,12 @@ export function HomeScreen({ navigation }: any) {
         <View style={{ paddingHorizontal: 16, marginTop: 22 }}>
           <SectionLabel style={{ marginLeft: 4, marginBottom: 8 }}>reading</SectionLabel>
           {currentBook ? (
-            <WidgetCard accent="gold" padding={14}>
+            <VYBCard level="widget" accent="gold" padding={14}>
               <View style={{ flexDirection: 'row', gap: 14 }}>
-                <BookCoverThumb
-                  url={currentBook.cover_url}
+                <VYBBookCover
+                  coverUrl={currentBook.cover_url}
                   title={currentBook.title}
+                  size="sm"
                 />
                 <View style={{ flex: 1, justifyContent: 'space-between' }}>
                   <View>
@@ -399,13 +410,13 @@ export function HomeScreen({ navigation }: any) {
                   </View>
                 </View>
               </View>
-            </WidgetCard>
+            </VYBCard>
           ) : (
-            <EmptyCard
+            <VYBEmpty
               title="No book yet."
               body="Add a book to start tracking your reading."
-              ctaLabel="Add a book"
-              onPress={() => navigation.navigate('reading')}
+              actionLabel="Add a book"
+              onAction={() => navigation.navigate('reading')}
             />
           )}
         </View>
@@ -414,11 +425,11 @@ export function HomeScreen({ navigation }: any) {
         <View style={{ paddingHorizontal: 16, marginTop: 22 }}>
           <SectionLabel style={{ marginLeft: 4, marginBottom: 8 }}>active challenges</SectionLabel>
           {activeChallenges.length === 0 ? (
-            <EmptyCard
+            <VYBEmpty
               title="No active challenges."
               body="Join or create a challenge with your circle."
-              ctaLabel="Open Friends"
-              onPress={() => navigation.navigate('friends')}
+              actionLabel="Open Friends"
+              onAction={() => navigation.navigate('friends')}
             />
           ) : (
             <View style={{ gap: 10 }}>
@@ -434,7 +445,7 @@ export function HomeScreen({ navigation }: any) {
         {/* Focus mode */}
         <View style={{ paddingHorizontal: 16, marginTop: 22 }}>
           <SectionLabel style={{ marginLeft: 4, marginBottom: 8 }}>focus mode</SectionLabel>
-          <WidgetCard accent="cream" padding={16}>
+          <VYBCard level="widget" accent="cream" padding={16}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={{
                 width: 40, height: 40, borderRadius: 20,
@@ -466,7 +477,7 @@ export function HomeScreen({ navigation }: any) {
                 </Pressable>
               ))}
             </View>
-          </WidgetCard>
+          </VYBCard>
         </View>
       </ScrollView>
 
@@ -498,41 +509,6 @@ export function HomeScreen({ navigation }: any) {
 // ─── Sub-components ──────────────────────────────────────────────────────
 
 /**
- * HabitsViewToggle — small Today/Week pill control. Mirrors the period
- * toggle pattern used elsewhere (Aura, PeriodSummary).
- */
-function HabitsViewToggle({
-  value, onChange,
-}: { value: 'today' | 'week'; onChange: (v: 'today' | 'week') => void }) {
-  const Seg = ({ id, label }: { id: 'today' | 'week'; label: string }) => {
-    const active = value === id;
-    return (
-      <Pressable onPress={() => onChange(id)} hitSlop={4} style={{
-        paddingHorizontal: 12, height: 24, borderRadius: 999,
-        backgroundColor: active ? C.goldFaint : 'transparent',
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Text style={{
-          fontFamily: F.sansBold, fontSize: 10,
-          color: active ? C.gold : C.textMuted, letterSpacing: 0.6, textTransform: 'uppercase',
-        }}>
-          {label}
-        </Text>
-      </Pressable>
-    );
-  };
-  return (
-    <View style={{
-      flexDirection: 'row', padding: 2, borderRadius: 999,
-      backgroundColor: C.bgOverlay, borderColor: C.borderSubtle, borderWidth: 1,
-    }}>
-      <Seg id="today" label="Today" />
-      <Seg id="week"  label="Week" />
-    </View>
-  );
-}
-
-/**
  * WeeklyHabitsGrid — mobile-friendly week view for habits.
  * Rows = habits, columns = Mon..Sun. Uses real data:
  *   - scheduled day → outline circle
@@ -556,17 +532,17 @@ function WeeklyHabitsGrid({
 
   if (habits.length === 0) {
     return (
-      <EmptyCard
+      <VYBEmpty
         title="No habits yet."
         body="Add a habit in the Habits tab to start your week."
-        ctaLabel="Open Habits"
-        onPress={() => {}}
+        actionLabel="Open Habits"
+        onAction={() => {}}
       />
     );
   }
 
   return (
-    <WidgetCard padding={0}>
+    <VYBCard level="widget" padding={0}>
       {/* Header row — day initials with today highlighted. */}
       <View style={{
         flexDirection: 'row', paddingTop: 12, paddingBottom: 8,
@@ -636,75 +612,7 @@ function WeeklyHabitsGrid({
           </View>
         </View>
       ))}
-    </WidgetCard>
-  );
-}
-
-/**
- * ProgressRing — SVG ring for the Habits Today card.
- * gray when empty, sage-green while in progress, gold when complete.
- * No animation — keeps the card cheap to render on lower-end devices.
- */
-function ProgressRing({
-  done, total, size = 108, stroke = 8,
-}: { done: number; total: number; size?: number; stroke?: number }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const pct = total > 0 ? Math.min(1, done / total) : 0;
-  const complete = total > 0 && done >= total;
-  const trackColor = 'rgba(255,255,255,0.10)';
-
-  // Animate the ring length + color between states. We animate progress on the
-  // JS driver (SVG stroke props aren't natively bridged) — cost is trivial for
-  // a single ring.
-  const progress = useRef(new Animated.Value(pct)).current;
-  const colorAnim = useRef(new Animated.Value(complete ? 2 : pct > 0 ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: pct, duration: 320,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(colorAnim, {
-      toValue: complete ? 2 : pct > 0 ? 1 : 0,
-      duration: 320,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
-      useNativeDriver: false,
-    }).start();
-  }, [pct, complete, progress, colorAnim]);
-
-  const strokeDashoffset = progress.interpolate({
-    inputRange: [0, 1], outputRange: [circ, 0],
-  });
-  const strokeColor = colorAnim.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: [trackColor, '#8FA88A', C.gold],
-  });
-
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size}>
-        <SvgCircle cx={size/2} cy={size/2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
-        <AnimatedCircle
-          cx={size/2} cy={size/2} r={r}
-          stroke={strokeColor as any} strokeWidth={stroke} fill="none"
-          strokeDasharray={`${circ} ${circ}`}
-          strokeDashoffset={strokeDashoffset as any}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size/2} ${size/2})`}
-        />
-      </Svg>
-      <View style={{ position: 'absolute', alignItems: 'center' }}>
-        <Text style={{
-          fontFamily: F.sansHeavy, fontSize: 26,
-          color: complete ? C.goldBright : C.textPrimary,
-          letterSpacing: -0.8, lineHeight: 28,
-        }}>
-          {total > 0 ? `${done}/${total}` : '0'}
-        </Text>
-      </View>
-    </View>
+    </VYBCard>
   );
 }
 
@@ -741,7 +649,15 @@ function HabitsTodayCard({
           Habits Today
         </Text>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 6 }}>
-          <ProgressRing done={done} total={total} />
+          <VYBProgressRing done={done} total={total} size={108} strokeWidth={8}>
+            <Text style={{
+              fontFamily: F.sansHeavy, fontSize: 26,
+              color: total > 0 && done >= total ? C.goldBright : C.textPrimary,
+              letterSpacing: -0.8, lineHeight: 28,
+            }}>
+              {total > 0 ? `${done}/${total}` : '0'}
+            </Text>
+          </VYBProgressRing>
         </View>
       </View>
     </Pressable>
@@ -822,172 +738,6 @@ function TaskCountRow({ label, count, color }: { label: string; count: number; c
       }}>
         {count}
       </Text>
-    </View>
-  );
-}
-
-/**
- * WidgetCard — premium surface used by every Home section.
- * Layers (from bottom to top):
- *   1. Soft drop shadow (warm-tinted via shadowColor).
- *   2. Slightly elevated base background.
- *   3. Optional accent tint overlay (sage/gold/coral) — very subtle.
- *   4. Top inner highlight (1px bright line via a 2-stop gradient) — gives
- *      the card a sense of light coming from above.
- *   5. Optional accent border color override.
- *   6. Content.
- *
- * The cumulative effect is depth without busyness — cards stop reading as
- * flat list items and start reading as widgets.
- */
-function WidgetCard({
-  children, accent, padding = 14, style,
-}: {
-  children: React.ReactNode;
-  accent?: 'sage' | 'gold' | 'coral' | 'cream';
-  padding?: number;
-  style?: any;
-}) {
-  const accentRGB =
-    accent === 'sage'  ? '143,168,138' :
-    accent === 'gold'  ? '201,169,97'  :
-    accent === 'coral' ? '210,112,80'  :
-    accent === 'cream' ? '244,240,232' : null;
-  return (
-    <View style={[{
-      borderRadius: 16, overflow: 'hidden',
-      backgroundColor: 'rgba(255,255,255,0.035)',
-      borderColor: accentRGB ? `rgba(${accentRGB},0.18)` : C.borderSubtle,
-      borderWidth: 1,
-      shadowColor: accentRGB ? `rgb(${accentRGB})` : '#000',
-      shadowOpacity: accentRGB ? 0.10 : 0.18,
-      shadowRadius: 14,
-      shadowOffset: { width: 0, height: 6 },
-    }, style]}>
-      {/* Optional accent tint — very faint wash over the surface */}
-      {accentRGB && (
-        <LinearGradient pointerEvents="none"
-          colors={[`rgba(${accentRGB},0.06)`, 'rgba(0,0,0,0)']}
-          start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-        />
-      )}
-      {/* Top inner highlight — simulates light from above */}
-      <LinearGradient pointerEvents="none"
-        colors={['rgba(255,255,255,0.10)', 'rgba(255,255,255,0)']}
-        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 22 }}
-      />
-      <View style={{ padding }}>{children}</View>
-    </View>
-  );
-}
-
-/**
- * BookCoverThumb — premium cover render for the Dashboard reading widget.
- * Uses the real cover image when present (same field the Reading screen
- * uses). Falls back to a dark gold-toned card with the book title initials
- * so empty covers still look intentional, never like a missing icon.
- */
-function BookCoverThumb({ url, title }: { url: string | null; title: string }) {
-  const W = 64, H = 92;
-  const initials = (title.match(/\b\w/g) || []).slice(0, 2).join('').toUpperCase() || 'B';
-  return (
-    <View style={{
-      width: W, height: H, borderRadius: 6, overflow: 'hidden',
-      backgroundColor: C.bgOverlay,
-      borderColor: 'rgba(201,169,97,0.25)', borderWidth: 1,
-      shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 5 },
-    }}>
-      {url ? (
-        <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-      ) : (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(201,169,97,0.10)' }}>
-          <Text style={{ fontFamily: F.sansHeavy, fontSize: 22, color: 'rgba(201,169,97,0.85)', letterSpacing: -0.5 }}>
-            {initials}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
-function SnapshotTile({
-  Icon, label, value, divider = false, done = false, attention = false,
-}: {
-  Icon: typeof Flame; label: string; value: string;
-  divider?: boolean; done?: boolean; attention?: boolean;
-}) {
-  // VYB v2: completion = gold across the entire app. Attention/pending also
-  // uses gold (it's the call-to-action colour); neutral = faint cream.
-  const iconColor  = done ? C.goldBright : attention ? C.gold : C.textFaint;
-  const valueColor = done ? C.goldBright : attention ? C.gold : C.textPrimary;
-  return (
-    <View style={{
-      flex: 1, paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center',
-      borderRightColor: C.borderSubtle, borderRightWidth: divider ? 1 : 0,
-    }}>
-      <Icon size={12} color={iconColor} />
-      <Text style={{ fontFamily: F.sansHeavy, fontSize: 16, color: valueColor, marginTop: 4, letterSpacing: -0.3 }}>
-        {value}
-      </Text>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 8.5, color: C.textFaint, marginTop: 2, letterSpacing: 0.6 }}>
-        {label.toUpperCase()}
-      </Text>
-    </View>
-  );
-}
-
-function QuickAction({
-  Icon, label, onPress,
-}: { Icon: typeof Plus; label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} hitSlop={2} style={{
-      flex: 1, paddingVertical: 13, borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.025)',
-      borderColor: C.borderSubtle, borderWidth: 1,
-      alignItems: 'center', gap: 6,
-    }}>
-      {/* Circular icon container — softer, less utilitarian. */}
-      <View style={{
-        width: 30, height: 30, borderRadius: 15,
-        backgroundColor: C.goldFaint,
-        borderColor: 'rgba(201,169,97,0.28)', borderWidth: 1,
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Icon size={13} color={C.gold} />
-      </View>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 10, color: C.textSecondary, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function EmptyCard({
-  title, body, ctaLabel, onPress,
-}: { title: string; body: string; ctaLabel: string; onPress: () => void }) {
-  return (
-    <View style={{
-      paddingVertical: 22, paddingHorizontal: 18, borderRadius: 14,
-      backgroundColor: 'rgba(255,255,255,0.025)',
-      borderColor: C.borderSubtle, borderWidth: 1,
-      alignItems: 'center',
-    }}>
-      <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.textSecondary, textAlign: 'center' }}>
-        {title}
-      </Text>
-      <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.textMuted, marginTop: 4, textAlign: 'center', lineHeight: 17 }}>
-        {body}
-      </Text>
-      <Pressable onPress={onPress} hitSlop={4} style={{
-        marginTop: 12, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
-        backgroundColor: C.goldFaint, borderColor: 'rgba(201,169,97,0.4)', borderWidth: 1,
-      }}>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.gold, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-          {ctaLabel}
-        </Text>
-      </Pressable>
     </View>
   );
 }
