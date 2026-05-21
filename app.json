@@ -2,6 +2,7 @@
   "expo": {
     "name": "vyb-creators-ios",
     "slug": "vyb-creators-ios",
+    "scheme": "vybcreators",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +14,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow VYB to transcribe what you say into text.",
+        "NSMicrophoneUsageDescription": "Allow VYB to use the microphone for voice capture.",
+        "NSPhotoLibraryUsageDescription": "Allow VYB to choose a photo from your library to upload as proof or avatar.",
+        "NSCameraUsageDescription": "Allow VYB to use the camera to take a proof photo or scan a friend QR.",
+        "NSPhotoLibraryAddUsageDescription": "Allow VYB to save images to your library."
+      },
+      "bundleIdentifier": "com.anonymous.vybcreatorsios"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +30,32 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ],
+      "package": "com.anonymous.vybcreatorsios"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow VYB to use the microphone for voice capture.",
+          "speechRecognitionPermission": "Allow VYB to transcribe what you say into text."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow VYB to use the camera to scan a friend QR code."
+        }
+      ]
+    ]
   }
 }
