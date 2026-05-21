@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import { Avatar, SectionLabel, Tx } from '../components/primitives';
 import { VYBGlowCard } from '../components/ui/VYBGlowCard';
+import { VYBCircleCard, VYBEmpty } from '../components/ui';
 import { colors as C, fonts as F } from '../theme';
 import { ScreenAtmosphere } from '../components/ScreenAtmosphere';
 import {
@@ -550,21 +551,42 @@ function CirclesTab({ navigation }: { navigation: any }) {
           <ActivityIndicator color={C.gold} />
         </View>
       ) : circles.length === 0 ? (
-        <VYBGlowCard variant="neutral" intensity="soft" contentStyle={{ padding: 22, alignItems: 'center', marginTop: 8 }}>
-          <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.textSecondary, textAlign: 'center' }}>
-            Create your first private circle.
-          </Text>
-          <Text style={{
-            fontFamily: F.sans, fontSize: 12, color: C.textMuted,
-            marginTop: 6, textAlign: 'center', lineHeight: 17,
-          }}>
-            Invite people you trust and build consistency together.
-          </Text>
-        </VYBGlowCard>
+        <VYBEmpty
+          variant="card"
+          tone="sage"
+          title="Create your first private circle."
+          body="Invite people you trust and build consistency together."
+          style={{ marginTop: 8 }}
+        />
       ) : (
         <>
           <SectionLabel style={{ marginLeft: 4, marginTop: 8 }}>your circles</SectionLabel>
-          {circles.map(c => <CircleRow key={c.id} circle={c} onPress={() => goToCircle(c.id)} />)}
+          {/* Visual 2-column grid — circles are groups, they deserve real
+              estate. Cover image leads, glass-style overlays preserve
+              readability over any image. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+            {circles.map(c => {
+              const purposeLabel =
+                c.purpose === 'workout'   ? 'Workout' :
+                c.purpose === 'reading'   ? 'Reading' :
+                c.purpose === 'hydration' ? 'Hydration' :
+                c.purpose === 'general'   ? 'General' :
+                c.purpose === 'custom'    ? 'Custom' : null;
+              return (
+                <View key={c.id} style={{ flexBasis: '48.5%', flexGrow: 1 }}>
+                  <VYBCircleCard
+                    name={c.name}
+                    imageUrl={c.image_url}
+                    description={c.description}
+                    memberCount={c.member_count}
+                    purposeLabel={purposeLabel}
+                    size="grid"
+                    onPress={() => goToCircle(c.id)}
+                  />
+                </View>
+              );
+            })}
+          </View>
         </>
       )}
 
@@ -579,121 +601,6 @@ function CirclesTab({ navigation }: { navigation: any }) {
         onJoined={(circleId) => { setJoinOpen(false); refresh(); goToCircle(circleId); }}
       />
     </View>
-  );
-}
-
-function CircleRow({ circle, onPress }: { circle: CircleListItem; onPress: () => void }) {
-  const purposeLabel =
-    circle.purpose === 'workout'   ? 'Workout' :
-    circle.purpose === 'reading'   ? 'Reading' :
-    circle.purpose === 'hydration' ? 'Hydration' :
-    circle.purpose === 'general'   ? 'General' :
-    circle.purpose === 'custom'    ? 'Custom' : null;
-  // Full-image editorial card with left-aligned text + left dark gradient.
-  const HEIGHT = 156;
-  return (
-    <Pressable onPress={onPress} hitSlop={2}>
-      <View style={{
-        height: HEIGHT, borderRadius: 24, overflow: 'hidden',
-        backgroundColor: C.bgElevated,
-        borderColor: 'rgba(143,168,138,0.20)', borderWidth: 1,
-        shadowColor: '#000', shadowOpacity: 0.32, shadowRadius: 16, shadowOffset: { width: 0, height: 8 },
-      }}>
-        {/* Background — real image or premium sage gradient fallback */}
-        {circle.image_url ? (
-          <Image source={{ uri: circle.image_url }}
-            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-            resizeMode="cover" />
-        ) : (
-          <LinearGradient
-            colors={['rgba(143,168,138,0.55)', 'rgba(50,72,58,0.95)', 'rgba(28,34,30,1)']}
-            start={{ x: 0.9, y: 0 }} end={{ x: 0.1, y: 1 }}
-            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                     alignItems: 'flex-end', justifyContent: 'center', paddingRight: 24 }}>
-            <Text style={{
-              fontFamily: F.sansHeavy, fontSize: 64,
-              color: 'rgba(244,240,232,0.30)', letterSpacing: -1.5,
-            }}>
-              {(circle.name.match(/\b\w/g) || []).slice(0, 2).join('').toUpperCase() || 'C'}
-            </Text>
-          </LinearGradient>
-        )}
-        {/* Left-side dark gradient — fades from solid black on the left to
-            transparent on the right. Keeps title readable over any image. */}
-        <LinearGradient pointerEvents="none"
-          colors={['rgba(8,8,10,0.85)', 'rgba(8,8,10,0.55)', 'rgba(8,8,10,0.05)', 'rgba(8,8,10,0)']}
-          locations={[0, 0.35, 0.75, 1]}
-          start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '85%' }}
-        />
-        {/* Subtle bottom darken for chip readability */}
-        <LinearGradient pointerEvents="none"
-          colors={['rgba(8,8,10,0)', 'rgba(8,8,10,0.45)']}
-          start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
-          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 70 }}
-        />
-
-        {/* Private lock — top-right glass pill */}
-        <View style={{
-          position: 'absolute', top: 14, right: 14,
-          width: 30, height: 30, borderRadius: 15,
-          backgroundColor: 'rgba(13,12,11,0.55)',
-          borderColor: 'rgba(244,240,232,0.18)', borderWidth: 1,
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Lock size={12} color="rgba(244,240,232,0.85)" />
-        </View>
-
-        {/* Editorial text block — left, vertically centered toward bottom */}
-        <View style={{
-          position: 'absolute', left: 18, right: 18, bottom: 16, top: 14,
-          justifyContent: 'space-between',
-        }}>
-          {purposeLabel ? (
-            <View style={{
-              alignSelf: 'flex-start',
-              paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-              backgroundColor: 'rgba(13,12,11,0.55)',
-              borderColor: 'rgba(143,168,138,0.45)', borderWidth: 1,
-            }}>
-              <Text style={{
-                fontFamily: F.sansBold, fontSize: 9.5, color: '#A8C0A2',
-                letterSpacing: 0.8, textTransform: 'uppercase',
-              }}>
-                {purposeLabel}
-              </Text>
-            </View>
-          ) : <View />}
-
-          <View>
-            <Text numberOfLines={1} style={{
-              fontFamily: F.sansHeavy, fontSize: 22, color: '#F4F0E8',
-              letterSpacing: -0.4,
-              textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 2 },
-            }}>
-              {circle.name}
-            </Text>
-            {circle.description ? (
-              <Text numberOfLines={1} style={{
-                fontFamily: F.serifItalic, fontSize: 12.5, color: 'rgba(244,240,232,0.78)',
-                marginTop: 3,
-                textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 },
-              }}>
-                {circle.description}
-              </Text>
-            ) : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-              <Users size={11} color="rgba(244,240,232,0.65)" />
-              <Text style={{
-                fontFamily: F.mono, fontSize: 10.5, color: 'rgba(244,240,232,0.65)',
-              }}>
-                {circle.member_count} {circle.member_count === 1 ? 'member' : 'members'}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    </Pressable>
   );
 }
 

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Avatar, SectionLabel, Tx, GoldButton } from '../components/primitives';
+import { VYBLeaderboard, type LeaderboardListEntry } from '../components/ui';
 import {
   useCheckinsSocial, useCheckinComments, useChallengeMessages,
   toggleCheckinLike, addCheckinComment, sendChallengeMessage,
@@ -220,16 +221,19 @@ export function ChallengeDetailScreen({ route, navigation }: any) {
           </ChallengeHero>
         </View>
 
-        {/* Leaderboard */}
+        {/* Leaderboard — podium top-3 + remaining participants */}
         <View style={{ paddingHorizontal: 16, marginTop: 18 }}>
           <SectionLabel style={{ marginLeft: 4, marginBottom: 8 }}>leaderboard</SectionLabel>
-          <View style={{
-            borderRadius: 14, overflow: 'hidden',
-            backgroundColor: 'rgba(255,255,255,0.025)',
-            borderColor: C.borderSubtle, borderWidth: 1,
-          }}>
-            {leaderboard.map((m, i) => <LeaderboardRow key={m.user_id} entry={m} rank={i + 1} />)}
-          </View>
+          <VYBLeaderboard
+            entries={leaderboard.map<LeaderboardListEntry>(m => ({
+              user_id: m.user_id,
+              name: m.profile.display_name || m.profile.username || 'Member',
+              avatarUrl: m.profile.avatar_url,
+              score: m.count,
+              unit: m.count === 1 ? 'check-in' : 'check-ins',
+              meta: m.checked_in_today ? 'Today ✓' : undefined,
+            }))}
+          />
         </View>
 
         {/* Proof feed */}
@@ -561,42 +565,6 @@ function SheetActionRow({
       <Icon size={16} color={tint} />
       <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: tint, letterSpacing: 0.3 }}>{label}</Text>
     </Pressable>
-  );
-}
-
-function LeaderboardRow({ entry, rank }: { entry: LeaderboardEntry; rank: number }) {
-  const name = entry.profile.display_name || entry.profile.username || 'Member';
-  return (
-    <View style={{
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingVertical: 12, paddingHorizontal: 14,
-      borderTopColor: C.borderSubtle, borderTopWidth: rank === 1 ? 0 : 1,
-    }}>
-      <View style={{ width: 22, alignItems: 'center' }}>
-        {rank === 1 ? (
-          <Crown size={14} color={C.gold} />
-        ) : (
-          <Text style={{ fontFamily: F.mono, fontSize: 11, color: C.textFaint }}>{rank}</Text>
-        )}
-      </View>
-      <Avatar size={32} label={(name[0] || '?').toUpperCase()} tone={rank === 1 ? 'gold' : 'neutral'} />
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: C.textPrimary }}>{name}</Text>
-        {entry.checked_in_today && (
-          <Text style={{ fontFamily: F.sansBold, fontSize: 9.5, color: '#8FA88A', marginTop: 2, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-            Today ✓
-          </Text>
-        )}
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-        <Text style={{ fontFamily: F.sansHeavy, fontSize: 18, color: C.textPrimary, letterSpacing: -0.3 }}>
-          {entry.count}
-        </Text>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 9, color: C.textFaint, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-          {entry.count === 1 ? 'check-in' : 'check-ins'}
-        </Text>
-      </View>
-    </View>
   );
 }
 

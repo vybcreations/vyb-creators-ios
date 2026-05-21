@@ -29,3 +29,14 @@ export { VYBScreenHeader } from './VYBScreenHeader';
 export { VYBInput } from './VYBInput';
 export type { VYBInputProps } from './VYBInput';
 export { VYBComposer } from './VYBComposer';
+
+// ─── Circles / Challenges / Leaderboard system ─────────────────────────
+export { VYBGlassCard } from './VYBGlassCard';
+export { VYBAvatarStack } from './VYBAvatarStack';
+export type { StackedAvatar } from './VYBAvatarStack';
+export { VYBCircleCard } from './VYBCircleCard';
+export { VYBChallengeCard } from './VYBChallengeCard';
+export { VYBPodium } from './VYBPodium';
+export type { PodiumEntry } from './VYBPodium';
+export { VYBLeaderboard } from './VYBLeaderboard';
+export type { LeaderboardListEntry } from './VYBLeaderboard';

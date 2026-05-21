@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, Pressable, Alert, Modal, Image, ActivityIndicator,
-  LayoutAnimation, Platform, UIManager,
+  LayoutAnimation, Platform, UIManager, InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,8 +50,15 @@ export function HomeScreen({ navigation }: any) {
   const { tasks, setTasks, refresh: refreshTasks } = useTasks();
   const { items: activeChallenges, refresh: refreshChallenges } = useMyActiveChallenges();
 
+  // Defer Supabase refreshes until the tab-switch animation finishes —
+  // otherwise four parallel queries fire on the same frame the user is
+  // landing and the JS bridge stutters (especially after the app has been
+  // idle). InteractionManager waits for interaction handles to clear.
   useFocusEffect(React.useCallback(() => {
-    refreshProfile(); refreshHabits(); refreshTasks(); refreshChallenges();
+    const handle = InteractionManager.runAfterInteractions(() => {
+      refreshProfile(); refreshHabits(); refreshTasks(); refreshChallenges();
+    });
+    return () => handle.cancel?.();
   }, [refreshProfile, refreshHabits, refreshTasks, refreshChallenges]));
 
   const [proofFor, setProofFor] = useState<ActiveChallengeCard | null>(null);
