@@ -1,15 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
+import {
+  View, Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Keyboard,
+} from 'react-native';
 import { Search, X, ArrowLeft } from 'lucide-react-native';
 import { DraggableSheet, SheetHeader } from '../../components/DraggableSheet';
+import {
+  VYBChip, VYBBookCover, VYBInput, VYBEmpty, VYBCard,
+} from '../../components/ui';
 import { GoldButton } from '../../components/primitives';
-import { VYBChip, VYBBookCover, VYBInput, VYBEmpty } from '../../components/ui';
 import { colors as C, fonts as F } from '../../theme';
 import { searchBooks, BookSearchResult } from '../../lib/booksearch';
 import { resolvePageCount } from '../../lib/books/pageCount';
 import { createBook, pickCoverTone, BookStatus } from '../../lib/reading';
 import { useAuth } from '../../lib/auth';
 import { hSelection, hSuccess } from '../../lib/haptics';
+
+/**
+ * AddBookSheet — rebuilt from scratch on VYB Design System v2.
+ *
+ * Visual structure
+ *   - DraggableSheet (keyboardAvoiding=false, near-full-screen, iPad max-width 560)
+ *   - SheetHeader: editorial title + X (back arrow during preview/manual)
+ *   - Pill search bar (VYBInput borderRadius=999)
+ *   - Body switches by mode:
+ *       'search'  → loading / results / empty / pre-search
+ *       'preview' → selected book card + status + reading/finished extras
+ *       'manual'  → manual title/author/pages + status + extras
+ *
+ * Logic
+ *   Preserved as-is from previous implementation: search via booksearch,
+ *   page-count resolver, createBook + post-create patch for current_page /
+ *   finished_at. No data model changes.
+ */
 
 type Mode = 'search' | 'preview' | 'manual';
 type ConfirmStatus = 'reading' | 'finished' | 'next';
@@ -34,7 +56,7 @@ export function AddBookSheet({
   const [resolvingPages, setResolvingPages] = useState(false);
   const [pagesEdited, setPagesEdited] = useState(false);
 
-  // Confirmation form state
+  // Confirmation form
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [pages, setPages] = useState('');
@@ -50,6 +72,7 @@ export function AddBookSheet({
   const seqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
+  // ─── Lifecycle ─────────────────────────────────────────────
   useEffect(() => {
     if (!visible) return;
     setMode('search'); setQuery(''); setResults([]); setSelected(null);
@@ -62,17 +85,13 @@ export function AddBookSheet({
     return () => clearTimeout(t);
   }, [visible, defaultStatus]);
 
-  // Explicit search — fires on submit / search-icon tap. No auto-search on
-  // every keystroke.
+  // ─── Logic (preserved) ─────────────────────────────────────
   const runSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
-
     abortRef.current?.abort();
     const mine = ++seqRef.current;
-    setSearching(true);
-    setProvidersDown(false);
-
+    setSearching(true); setProvidersDown(false);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
@@ -83,20 +102,14 @@ export function AddBookSheet({
       setHasSearched(true);
     } catch (e: any) {
       if (mine !== seqRef.current) return;
-      if (e?.name !== 'AbortError') {
-        setResults([]);
-        setHasSearched(true);
-      }
+      if (e?.name !== 'AbortError') { setResults([]); setHasSearched(true); }
     } finally {
       if (mine === seqRef.current) setSearching(false);
     }
   };
 
   const clearQuery = () => {
-    setQuery('');
-    setResults([]);
-    setHasSearched(false);
-    setProvidersDown(false);
+    setQuery(''); setResults([]); setHasSearched(false); setProvidersDown(false);
   };
 
   const choose = async (r: BookSearchResult) => {
@@ -114,7 +127,6 @@ export function AddBookSheet({
       setResolvingPages(true);
       try {
         const resolved = await resolvePageCount(r);
-        // Don't clobber if the user already started editing
         if (resolved.totalPages !== '' && !pagesEdited) {
           setPages(String(resolved.totalPages));
           setSelected(prev => prev ? {
@@ -130,10 +142,8 @@ export function AddBookSheet({
     }
   };
 
-  // Manual edit overrides any estimation flag
   const onPagesChange = (v: string) => {
-    setPages(v);
-    setPagesEdited(true);
+    setPages(v); setPagesEdited(true);
     setSelected(prev => prev ? { ...prev, page_confidence: 'manual', page_source: 'manual' } : prev);
   };
 
@@ -148,8 +158,7 @@ export function AddBookSheet({
     if (!finishedMonth && !finishedYear) return new Date().toISOString();
     const y = parseInt(finishedYear, 10) || new Date().getFullYear();
     const m = Math.min(12, Math.max(1, parseInt(finishedMonth, 10) || 1));
-    const iso = new Date(Date.UTC(y, m - 1, 1)).toISOString();
-    return iso;
+    return new Date(Date.UTC(y, m - 1, 1)).toISOString();
   };
 
   const save = async () => {
@@ -179,15 +188,11 @@ export function AddBookSheet({
         page_source: selected?.page_source || null,
         page_confidence: selected?.page_confidence || 'none',
       } as any);
-      // Patch current_page + finished_at after create (createBook doesn't take them)
       if (cur > 0 || finishedAt) {
         const { supabase } = await import('../../lib/supabase');
         const { error } = await supabase
           .from('books')
-          .update({
-            current_page: cur,
-            finished_at: finishedAt,
-          })
+          .update({ current_page: cur, finished_at: finishedAt })
           .eq('user_id', session.user.id)
           .eq('title', title.trim())
           .order('created_at', { ascending: false })
@@ -202,9 +207,12 @@ export function AddBookSheet({
     } finally { setBusy(false); }
   };
 
-  const trimmed = query.trim();
-  const canSave = title.trim().length > 0
-    && (status !== 'reading' || (pages.length > 0));
+  // ─── Render ────────────────────────────────────────────────
+  const canSave = title.trim().length > 0 && (status !== 'reading' || pages.length > 0);
+  const headerTitle =
+    mode === 'search'  ? 'Add a book' :
+    mode === 'preview' ? 'Confirm book' :
+                         'Manual entry';
 
   return (
     <DraggableSheet
@@ -215,7 +223,7 @@ export function AddBookSheet({
       keyboardAvoiding={false}
     >
       <SheetHeader
-        title={mode === 'search' ? 'Add a book' : mode === 'preview' ? 'Confirm book' : 'Manual entry'}
+        title={headerTitle}
         onClose={onDismiss}
         leftAccessory={mode !== 'search' ? (
           <Pressable onPress={() => setMode('search')} hitSlop={10}>
@@ -223,36 +231,30 @@ export function AddBookSheet({
           </Pressable>
         ) : undefined}
       />
-      {/* DraggableSheet w/ keyboardAvoiding={false} now forces the sheet to
-          render at maxHeightFraction × screen — so flex:1 here actually
-          fills the sheet body, and the inner ScrollViews can flex into
-          the remaining space below the header + search. */}
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
 
-        {mode === 'search' && (
-          <SearchMode
+      <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
+        {mode === 'search' ? (
+          <SearchView
             searchRef={searchRef}
-            query={query} setQuery={setQuery}
+            query={query} onQueryChange={setQuery}
             onSubmit={runSearch} onClear={clearQuery}
             searching={searching} hasSearched={hasSearched}
             results={results} providersDown={providersDown}
             onChoose={choose} onManual={goManual}
           />
-        )}
-
-        {(mode === 'preview' || mode === 'manual') && (
-          <ConfirmMode
+        ) : (
+          <ConfirmView
             mode={mode}
             title={title} setTitle={setTitle}
             author={author} setAuthor={setAuthor}
             pages={pages} setPages={onPagesChange}
-            resolvingPages={resolvingPages}
-            isEstimated={!pagesEdited && (selected?.page_confidence === 'low' || selected?.page_confidence === 'medium')}
-            coverUrl={coverUrl} year={year}
-            status={status} setStatus={setStatus}
             currentPage={currentPage} setCurrentPage={setCurrentPage}
             finishedMonth={finishedMonth} setFinishedMonth={setFinishedMonth}
             finishedYear={finishedYear} setFinishedYear={setFinishedYear}
+            coverUrl={coverUrl} year={year}
+            status={status} setStatus={(s: ConfirmStatus) => { hSelection(); setStatus(s); }}
+            resolvingPages={resolvingPages}
+            isEstimated={!pagesEdited && (selected?.page_confidence === 'low' || selected?.page_confidence === 'medium')}
             canSave={canSave} busy={busy} onSave={save}
             onChooseAnother={() => setMode('search')}
           />
@@ -262,34 +264,43 @@ export function AddBookSheet({
   );
 }
 
-// ─── Search ──────────────────────────────────────────────
-function SearchMode({
-  searchRef, query, setQuery, onSubmit, onClear,
-  searching, hasSearched, results, providersDown,
-  onChoose, onManual,
-}: any) {
+// ─── Search view ─────────────────────────────────────────────
+function SearchView({
+  searchRef, query, onQueryChange, onSubmit, onClear,
+  searching, hasSearched, results, providersDown, onChoose, onManual,
+}: {
+  searchRef: React.RefObject<TextInput | null>;
+  query: string; onQueryChange: (v: string) => void;
+  onSubmit: () => void; onClear: () => void;
+  searching: boolean; hasSearched: boolean;
+  results: BookSearchResult[]; providersDown: boolean;
+  onChoose: (r: BookSearchResult) => void; onManual: () => void;
+}) {
   const hasResults = results.length > 0;
   return (
     <>
-      <View style={{ marginBottom: 14 }}>
+      <View style={{ position: 'relative', marginBottom: 16 }}>
         <VYBInput
           ref={searchRef}
-          value={query} onChangeText={setQuery}
+          value={query} onChangeText={onQueryChange}
           onSubmitEditing={onSubmit}
-          placeholder="Search title, author, ISBN…"
+          placeholder="Search title, author or ISBN"
           autoCapitalize="none" autoCorrect={false}
           returnKeyType="search"
           selectionColor={C.gold}
           borderRadius={999}
           icon={
             <Pressable onPress={onSubmit} hitSlop={6}>
-              <Search size={16} color={query.trim().length > 0 ? C.gold : C.textMuted} />
+              <Search size={17} color={query.trim().length > 0 ? C.gold : C.textMuted} />
             </Pressable>
           }
         />
         {query.length > 0 && (
-          <Pressable onPress={onClear} hitSlop={10} style={{ position: 'absolute', right: 18, top: 16 }}>
-            <X size={14} color={C.textMuted} />
+          <Pressable
+            onPress={onClear} hitSlop={10}
+            style={{ position: 'absolute', right: 18, top: 0, bottom: 0, justifyContent: 'center' }}
+          >
+            <X size={15} color={C.textMuted} />
           </Pressable>
         )}
       </View>
@@ -300,9 +311,11 @@ function SearchMode({
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={{ paddingBottom: 32 }}
+        showsVerticalScrollIndicator={false}
       >
         {searching && (
-          <View style={{ paddingVertical: 32, alignItems: 'center', gap: 12 }}>
+          <View style={{ paddingVertical: 36, alignItems: 'center', gap: 12 }}>
             <ActivityIndicator color={C.gold} />
             <Text style={{ fontFamily: F.sans, fontSize: 13, color: C.textMuted, letterSpacing: 0.2 }}>
               Searching books…
@@ -310,7 +323,6 @@ function SearchMode({
           </View>
         )}
 
-        {/* Both providers actually errored out */}
         {!searching && hasSearched && providersDown && (
           <VYBEmpty
             variant="simple"
@@ -321,7 +333,6 @@ function SearchMode({
           />
         )}
 
-        {/* APIs answered but returned nothing */}
         {!searching && hasSearched && !providersDown && !hasResults && (
           <VYBEmpty
             variant="simple"
@@ -332,80 +343,148 @@ function SearchMode({
           />
         )}
 
-        {/* Results — trust the API ordering, no client-side filtering */}
-        {!searching && hasResults && results.map((r: BookSearchResult) => (
-          <ResultRow key={r.external_id} r={r} onChoose={onChoose} />
-        ))}
+        {!searching && hasResults && (
+          <View style={{ gap: 8 }}>
+            {results.map(r => <ResultRow key={r.external_id} r={r} onPress={() => onChoose(r)} />)}
+          </View>
+        )}
 
-        {/* Pre-search prompt */}
         {!searching && !hasSearched && (
-          <VYBEmpty
-            variant="simple"
-            title="Type a title or author, then press search."
-            actionLabel="Or add manually"
-            onAction={onManual}
-          />
+          <View style={{ paddingTop: 36, alignItems: 'center', paddingHorizontal: 12 }}>
+            <Text style={{
+              fontFamily: F.serifItalic, fontSize: 15, color: C.textSecondary,
+              textAlign: 'center', lineHeight: 22,
+            }}>
+              Type a title, author or ISBN, then tap search.
+            </Text>
+            <Pressable onPress={onManual} hitSlop={6} style={{ marginTop: 18 }}>
+              <Text style={{
+                fontFamily: F.sansBold, fontSize: 11.5, color: C.gold,
+                letterSpacing: 1.2, textTransform: 'uppercase',
+              }}>
+                Or add manually
+              </Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
     </>
   );
 }
 
-// ─── Confirm / Manual ────────────────────────────────────
-function ConfirmMode({
+function ResultRow({ r, onPress }: { r: BookSearchResult; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress}>
+      <VYBCard level="list" padding={12}>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+          <VYBBookCover coverUrl={r.cover_url} title={r.title} size="xs" width={46} height={66} />
+          <View style={{ flex: 1 }}>
+            <Text numberOfLines={2} style={{
+              fontFamily: F.sansBold, fontSize: 13.5, color: C.textPrimary, letterSpacing: -0.1, lineHeight: 18,
+            }}>
+              {r.title}
+            </Text>
+            {r.author && (
+              <Text numberOfLines={1} style={{
+                fontFamily: F.serifItalic, fontSize: 12, color: C.textMuted, marginTop: 3,
+              }}>
+                {r.author}
+              </Text>
+            )}
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+              {r.total_pages ? <MetaPill>{r.total_pages} pages</MetaPill> : null}
+              {r.published_date ? <MetaPill>{r.published_date.slice(0, 4)}</MetaPill> : null}
+            </View>
+          </View>
+        </View>
+      </VYBCard>
+    </Pressable>
+  );
+}
+
+function MetaPill({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={{
+      paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      borderColor: C.borderSubtle, borderWidth: 1,
+    }}>
+      <Text style={{ fontFamily: F.mono, fontSize: 10, color: C.textMuted }}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Confirm / Manual view ───────────────────────────────────
+function ConfirmView({
   mode, title, setTitle, author, setAuthor, pages, setPages,
-  resolvingPages, isEstimated,
-  coverUrl, year,
-  status, setStatus, currentPage, setCurrentPage,
-  finishedMonth, setFinishedMonth, finishedYear, setFinishedYear,
-  canSave, busy, onSave, onChooseAnother,
+  currentPage, setCurrentPage, finishedMonth, setFinishedMonth, finishedYear, setFinishedYear,
+  coverUrl, year, status, setStatus,
+  resolvingPages, isEstimated, canSave, busy, onSave, onChooseAnother,
 }: any) {
   return (
     <ScrollView
+      style={{ flex: 1 }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="interactive"
       automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ paddingBottom: 24 }}
+      contentContainerStyle={{ paddingBottom: 32 }}
+      showsVerticalScrollIndicator={false}
     >
-      {/* Book summary — horizontal */}
+      {/* Header card — selected book preview (or manual editable) */}
       {mode === 'preview' ? (
-        <View style={{ flexDirection: 'row', gap: 16, marginBottom: 22 }}>
-          <VYBBookCover coverUrl={coverUrl} title={title} size="md" width={94} height={140} />
-          <View style={{ flex: 1, justifyContent: 'space-between' }}>
-            <View>
-              <Text numberOfLines={3} style={{ fontFamily: F.sansBold, fontSize: 17, color: C.textPrimary, letterSpacing: -0.2, lineHeight: 22 }}>
-                {title}
-              </Text>
-              {author ? (
-                <Text numberOfLines={2} style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.textMuted, marginTop: 4 }}>
-                  {author}
+        <VYBCard level="widget" accent="gold" padding={16} style={{ marginBottom: 18 }}>
+          <View style={{ flexDirection: 'row', gap: 14 }}>
+            <VYBBookCover coverUrl={coverUrl} title={title} size="md" width={84} height={126} />
+            <View style={{ flex: 1, justifyContent: 'space-between' }}>
+              <View>
+                <Text numberOfLines={3} style={{
+                  fontFamily: F.sansBold, fontSize: 16, color: C.textPrimary,
+                  letterSpacing: -0.2, lineHeight: 21,
+                }}>
+                  {title}
                 </Text>
-              ) : null}
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {year ? <Tag>{year}</Tag> : null}
-                {pages ? <Tag>{pages} pages</Tag> : null}
+                {author ? (
+                  <Text numberOfLines={2} style={{
+                    fontFamily: F.serifItalic, fontSize: 12.5, color: C.textMuted, marginTop: 3,
+                  }}>
+                    {author}
+                  </Text>
+                ) : null}
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {year ? <MetaPill>{year}</MetaPill> : null}
+                  {pages ? <MetaPill>{pages} pages</MetaPill> : null}
+                </View>
               </View>
+              <Pressable onPress={onChooseAnother} hitSlop={6} style={{ marginTop: 10 }}>
+                <Text style={{
+                  fontFamily: F.sansBold, fontSize: 10.5, color: C.gold, letterSpacing: 1.2,
+                }}>
+                  CHOOSE ANOTHER →
+                </Text>
+              </Pressable>
             </View>
-            <Pressable onPress={onChooseAnother} style={{ marginTop: 10 }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: C.gold, letterSpacing: 1.2 }}>
-                CHOOSE ANOTHER BOOK
-              </Text>
-            </Pressable>
           </View>
-        </View>
+        </VYBCard>
       ) : (
-        // Manual mode: editable inputs at the top
-        <View style={{ marginBottom: 18 }}>
-          <Field label="Title"  value={title}  onChange={setTitle}  placeholder="Book title" />
-          <Field label="Author" value={author} onChange={setAuthor} placeholder="Author name" />
-          <Field label="Pages"  value={pages}  onChange={setPages}  placeholder="370" keyboardType="number-pad" />
+        <View style={{ marginBottom: 18, gap: 12 }}>
+          <Labeled label="Title">
+            <VYBInput value={title} onChangeText={setTitle} placeholder="Book title" selectionColor={C.gold} />
+          </Labeled>
+          <Labeled label="Author">
+            <VYBInput value={author} onChangeText={setAuthor} placeholder="Author name" selectionColor={C.gold} />
+          </Labeled>
+          <Labeled label="Pages">
+            <VYBInput value={pages} onChangeText={setPages} placeholder="370" keyboardType="number-pad" selectionColor={C.gold} />
+          </Labeled>
         </View>
       )}
 
       {/* Status */}
       <SectionLabel>STATUS</SectionLabel>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 18 }}>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 22 }}>
         {(['reading', 'finished', 'next'] as const).map(s => (
           <View key={s} style={{ flex: 1 }}>
             <VYBChip
@@ -413,7 +492,7 @@ function ConfirmMode({
               tone="gold"
               selected={status === s}
               size="lg"
-              onPress={() => { hSelection(); setStatus(s); }}
+              onPress={() => setStatus(s)}
               style={{ width: '100%', justifyContent: 'center' }}
             />
           </View>
@@ -422,21 +501,25 @@ function ConfirmMode({
 
       {/* Conditional fields */}
       {status === 'reading' && (
-        <View style={{ marginBottom: 18 }}>
+        <View style={{ marginBottom: 22, gap: 12 }}>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Field label="Current page" value={currentPage} onChange={setCurrentPage} placeholder="0" keyboardType="number-pad" />
+              <Labeled label="Current page">
+                <VYBInput value={currentPage} onChangeText={setCurrentPage} placeholder="0" keyboardType="number-pad" selectionColor={C.gold} />
+              </Labeled>
             </View>
             <View style={{ flex: 1 }}>
-              <FieldWithAdornment
-                label="Total pages" value={pages} onChange={setPages} placeholder="—"
-                keyboardType="number-pad"
-                adornment={resolvingPages ? <ActivityIndicator size="small" color={C.gold} /> : null}
-              />
+              <Labeled label="Total pages">
+                <VYBInput
+                  value={pages} onChangeText={setPages} placeholder="—"
+                  keyboardType="number-pad" selectionColor={C.gold}
+                  icon={resolvingPages ? <ActivityIndicator size="small" color={C.gold} /> : undefined}
+                />
+              </Labeled>
             </View>
           </View>
           {isEstimated && !!pages && !resolvingPages && (
-            <Text style={{ fontFamily: F.mono, fontSize: 10.5, color: C.amber, marginLeft: 4, marginTop: -8 }}>
+            <Text style={{ fontFamily: F.mono, fontSize: 10.5, color: C.amber, marginLeft: 4 }}>
               Estimated · you can edit it
             </Text>
           )}
@@ -444,29 +527,36 @@ function ConfirmMode({
       )}
 
       {status === 'finished' && (
-        <View style={{ marginBottom: 18 }}>
+        <View style={{ marginBottom: 22 }}>
           <SectionLabel>WHEN DID YOU FINISH IT?</SectionLabel>
-          <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginTop: 4, marginBottom: 10 }}>
+          <Text style={{ fontFamily: F.sans, fontSize: 11.5, color: C.textMuted, marginTop: 6, marginBottom: 10 }}>
             Optional. Defaults to today if left empty.
           </Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Field label="Month" value={finishedMonth} onChange={setFinishedMonth} placeholder="1–12" keyboardType="number-pad" />
+              <Labeled label="Month">
+                <VYBInput value={finishedMonth} onChangeText={setFinishedMonth} placeholder="1–12" keyboardType="number-pad" selectionColor={C.gold} />
+              </Labeled>
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Year" value={finishedYear} onChange={setFinishedYear} placeholder="2026" keyboardType="number-pad" />
+              <Labeled label="Year">
+                <VYBInput value={finishedYear} onChangeText={setFinishedYear} placeholder="2026" keyboardType="number-pad" selectionColor={C.gold} />
+              </Labeled>
             </View>
           </View>
         </View>
       )}
 
       <GoldButton
-        variant="complete" size="lg" onPress={canSave ? onSave : undefined}
+        variant="complete" size="lg"
+        onPress={canSave ? onSave : undefined}
+        loading={busy}
         style={{ alignSelf: 'stretch', justifyContent: 'center', opacity: canSave ? 1 : 0.5 }}>
-        {busy ? '…' : 'Add book'}
+        Add book
       </GoldButton>
+
       {!canSave && status === 'reading' ? (
-        <Text style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, textAlign: 'center', marginTop: 8 }}>
+        <Text style={{ fontFamily: F.sans, fontSize: 11.5, color: C.textMuted, textAlign: 'center', marginTop: 10 }}>
           Add a total page count to start tracking.
         </Text>
       ) : null}
@@ -474,47 +564,12 @@ function ConfirmMode({
   );
 }
 
-// ─── Small helpers ────────────────────────────────────────
-function ResultRow({ r, onChoose }: { r: BookSearchResult; onChoose: (r: BookSearchResult) => void }) {
+// ─── Tiny helpers ────────────────────────────────────────────
+function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Pressable onPress={() => onChoose(r)} style={{
-      flexDirection: 'row', gap: 12, paddingVertical: 10,
-      borderBottomColor: C.borderSubtle, borderBottomWidth: 1,
-    }}>
-      <VYBBookCover coverUrl={r.cover_url} title={r.title} size="xs" width={44} height={62} />
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Text numberOfLines={2} style={{ fontFamily: F.sansBold, fontSize: 14, color: C.textPrimary, letterSpacing: -0.1 }}>{r.title}</Text>
-        {r.author && <Text numberOfLines={1} style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.textMuted, marginTop: 2 }}>{r.author}</Text>}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-          {r.total_pages && <Tag>{r.total_pages} p.</Tag>}
-          {r.published_date && <Tag>{r.published_date.slice(0, 4)}</Tag>}
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-function FieldWithAdornment({ label, value, onChange, placeholder, keyboardType, adornment }: any) {
-  return (
-    <View style={{ marginBottom: 14 }}>
-      <SectionLabel style={{ marginBottom: 6 }}>{String(label).toUpperCase()}</SectionLabel>
-      <VYBInput
-        value={value} onChangeText={onChange} placeholder={placeholder}
-        keyboardType={keyboardType} selectionColor={C.gold}
-        icon={adornment ? <View>{adornment}</View> : undefined}
-      />
-    </View>
-  );
-}
-
-function Field({ label, value, onChange, placeholder, keyboardType }: any) {
-  return (
-    <View style={{ marginBottom: 14 }}>
-      <SectionLabel style={{ marginBottom: 6 }}>{String(label).toUpperCase()}</SectionLabel>
-      <VYBInput
-        value={value} onChangeText={onChange} placeholder={placeholder}
-        keyboardType={keyboardType} selectionColor={C.gold}
-      />
+    <View>
+      <SectionLabel style={{ marginBottom: 6 }}>{label.toUpperCase()}</SectionLabel>
+      {children}
     </View>
   );
 }
@@ -527,13 +582,3 @@ function SectionLabel({ children, style }: any) {
     }, style]}>{children}</Text>
   );
 }
-
-function Tag({ children }: any) {
-  return (
-    <Text style={{
-      fontFamily: F.mono, fontSize: 10, color: C.textMuted,
-      backgroundColor: C.bgOverlay, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
-    }}>{children}</Text>
-  );
-}
-
