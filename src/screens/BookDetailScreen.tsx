@@ -529,7 +529,8 @@ export function BookDetailScreen({ navigation, route }: any) {
         totalPages={book.total_pages}
       />
 
-      {/* Session chooser — Add pages vs Start focus block */}
+      {/* Session chooser — Add pages, in-book block (page-tracking), or
+          full-screen Focus Mode (uses the app's existing FocusScreen). */}
       <ActionMenu
         visible={chooserOpen}
         onDismiss={() => setChooserOpen(false)}
@@ -541,9 +542,17 @@ export function BookDetailScreen({ navigation, route }: any) {
             onPress: () => setPagesSheetOpen(true),
           },
           {
-            label: 'Start focus block',
+            label: 'Start reading block',
             icon: <TimerIcon size={16} color={C.textPrimary} />,
             onPress: () => setSessionOpen(true),
+          },
+          {
+            label: 'Open Focus Mode',
+            icon: <TimerIcon size={16} color={C.gold} />,
+            onPress: () => navigation.getParent()?.navigate('Focus', {
+              task: book.title,
+              minutes: 25,
+            }),
           },
         ]}
       />

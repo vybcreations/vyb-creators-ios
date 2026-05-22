@@ -207,7 +207,7 @@ export function AddBookSheet({
     && (status !== 'reading' || (pages.length > 0));
 
   return (
-    <DraggableSheet visible={visible} onDismiss={onDismiss} showClose={false}>
+    <DraggableSheet visible={visible} onDismiss={onDismiss} showClose={false} maxHeightFraction={0.95}>
       <SheetHeader
         title={mode === 'search' ? 'Add a book' : mode === 'preview' ? 'Confirm book' : 'Manual entry'}
         onClose={onDismiss}
@@ -217,7 +217,10 @@ export function AddBookSheet({
           </Pressable>
         ) : undefined}
       />
-      <View style={{ paddingHorizontal: 20, paddingBottom: 20, minHeight: 480 }}>
+      {/* flex:1 + min-height so the sheet locks at near-full-screen and the
+          keyboard appearance can't squeeze the container into a smaller frame
+          mid-animation. */}
+      <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
 
         {mode === 'search' && (
           <SearchMode

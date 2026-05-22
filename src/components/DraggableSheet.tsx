@@ -56,8 +56,6 @@ export function DraggableSheet({
     drag,
   );
   const backdropOpacity = slide.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] });
-  // Subtle scale-in for an "expanding" feel as the sheet arrives
-  const scale = slide.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] });
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss} statusBarTranslucent>
@@ -66,7 +64,7 @@ export function DraggableSheet({
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: backdropOpacity }} />
         <Pressable onPress={onDismiss} style={{ flex: 1 }} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={-KEYBOARD_GAP}>
-          <Animated.View style={{ transform: [{ translateY }, { scale }], maxHeight: `${maxHeightFraction * 100}%` as any }}>
+          <Animated.View style={{ transform: [{ translateY }], maxHeight: `${maxHeightFraction * 100}%` as any }}>
             <SafeAreaView edges={['bottom']} style={{
               backgroundColor: C.bgElevated,
               borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl,

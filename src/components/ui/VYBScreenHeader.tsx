@@ -71,29 +71,39 @@ export function VYBScreenHeader({
   }
 
   if (variant === 'detail') {
+    // Absolute-centered title — guarantees the label sits at the true
+    // screen midpoint, regardless of how wide the left back button or the
+    // right action cluster end up being.
     return (
       <View style={[{
-        paddingHorizontal: 8, paddingVertical: 4,
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        paddingHorizontal: 8, paddingVertical: 4, height: 44,
+        justifyContent: 'center',
       }, style]}>
-        {back ? (
-          <Pressable onPress={onBack} hitSlop={8} style={{
-            width: 36, height: 36, borderRadius: 18,
+        {title && (
+          <View pointerEvents="none" style={{
+            position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <ChevronLeft size={18} color={C.textPrimary} />
-          </Pressable>
-        ) : <View style={{ width: 36 }} />}
-        {title && (
-          <Text style={{
-            fontFamily: F.sansBold, fontSize: 10, color: C.textMuted,
-            letterSpacing: 1.4, textTransform: 'uppercase',
-          }}>
-            {title}
-          </Text>
+            <Text style={{
+              fontFamily: F.sansBold, fontSize: 10, color: C.textMuted,
+              letterSpacing: 1.4, textTransform: 'uppercase',
+            }}>
+              {title}
+            </Text>
+          </View>
         )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {rightAction}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          {back ? (
+            <Pressable onPress={onBack} hitSlop={8} style={{
+              width: 36, height: 36, borderRadius: 18,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ChevronLeft size={18} color={C.textPrimary} />
+            </Pressable>
+          ) : <View style={{ width: 36 }} />}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            {rightAction}
+          </View>
         </View>
       </View>
     );

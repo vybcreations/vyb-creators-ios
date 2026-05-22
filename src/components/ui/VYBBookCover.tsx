@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path as SvgPath } from 'react-native-svg';
 import { colors as C, fonts as F } from '../../theme';
 
 /**
@@ -52,8 +51,11 @@ export function VYBBookCover({
     h: height ?? preset.h,
     radius: preset.radius,
   };
+  // Favorite covers wear a slightly thicker, more present gold border —
+  // single, premium indicator (no star badge overlay) so the library stays
+  // minimal.
   const frame = favorite
-    ? { borderColor: 'rgba(201,169,97,0.65)', borderWidth: 1.5 }
+    ? { borderColor: 'rgba(232,194,117,0.85)', borderWidth: 2 }
     : { borderColor: 'rgba(201,169,97,0.20)', borderWidth: 1 };
 
   const initials = (title || '').match(/\b\w/g)?.slice(0, 2).join('').toUpperCase() || '—';
@@ -87,22 +89,6 @@ export function VYBBookCover({
               </Text>
             </LinearGradient>
           )}
-        </View>
-      )}
-      {favorite && (
-        <View style={{
-          position: 'absolute', top: 6, right: 6,
-          width: 22, height: 22, borderRadius: 11,
-          backgroundColor: 'rgba(13,12,11,0.7)',
-          borderColor: 'rgba(201,169,97,0.5)', borderWidth: 1,
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Svg width={10} height={10} viewBox="0 0 24 24">
-            <SvgPath
-              d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"
-              fill={C.gold} stroke={C.gold} strokeWidth={1.2}
-            />
-          </Svg>
         </View>
       )}
     </View>
