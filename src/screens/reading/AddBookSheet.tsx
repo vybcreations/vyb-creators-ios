@@ -2,10 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Keyboard,
 } from 'react-native';
-import { Search, X, ArrowLeft } from 'lucide-react-native';
-import { DraggableSheet, SheetHeader } from '../../components/DraggableSheet';
+import { Search, X } from 'lucide-react-native';
 import {
-  VYBChip, VYBBookCover, VYBInput, VYBEmpty, VYBCard,
+  VYBChip, VYBBookCover, VYBInput, VYBEmpty, VYBCard, VYBCreationSheet,
 } from '../../components/ui';
 import { GoldButton } from '../../components/primitives';
 import { colors as C, fonts as F } from '../../theme';
@@ -215,23 +214,12 @@ export function AddBookSheet({
                          'Manual entry';
 
   return (
-    <DraggableSheet
+    <VYBCreationSheet
       visible={visible}
       onDismiss={onDismiss}
-      showClose={false}
-      maxHeightFraction={0.95}
-      keyboardAvoiding={false}
+      title={headerTitle}
+      onBack={mode !== 'search' ? () => setMode('search') : undefined}
     >
-      <SheetHeader
-        title={headerTitle}
-        onClose={onDismiss}
-        leftAccessory={mode !== 'search' ? (
-          <Pressable onPress={() => setMode('search')} hitSlop={10}>
-            <ArrowLeft size={20} color={C.textPrimary} />
-          </Pressable>
-        ) : undefined}
-      />
-
       <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
         {mode === 'search' ? (
           <SearchView
@@ -260,7 +248,7 @@ export function AddBookSheet({
           />
         )}
       </View>
-    </DraggableSheet>
+    </VYBCreationSheet>
   );
 }
 

@@ -8,13 +8,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Plus, Sparkles, Quote, FileText, MoreHorizontal,
-  Minus, Trash2, Timer as TimerIcon, PlusSquare, Star,
+  Minus, Trash2, Star,
 } from 'lucide-react-native';
 import { useFavoriteBooks, toggleFavoriteBook, FavoriteLimitError } from '../lib/favoriteBooks';
 import { IconButton, GoldButton, Tx } from '../components/primitives';
 import { VYBCard, VYBScreenHeader, VYBEmpty } from '../components/ui';
 import { BookCover3D } from '../components/BookCover3D';
-import { ActionMenu } from '../components/ActionMenu';
 import { colors as C, fonts as F, KEYBOARD_GAP } from '../theme';
 import { useAuth } from '../lib/auth';
 import {
@@ -24,8 +23,8 @@ import {
 } from '../lib/reading';
 import { useUndoToast } from '../components/UndoToast';
 import { hLight, hSelection, hSuccess, hWarning, hMedium } from '../lib/haptics';
-import { SessionSheet, ActiveSession } from './reading/SessionSheet';
-import { AddPagesSheet } from './reading/AddPagesSheet';
+import type { ActiveSession } from './reading/SessionSheet';
+import { ReadingSessionSheet } from './reading/ReadingSessionSheet';
 import { EditBookSheet } from './reading/EditBookSheet';
 import { StartReadingSheet } from './reading/StartReadingSheet';
 import { EntryComposer } from './reading/EntryComposer';
@@ -60,9 +59,8 @@ export function BookDetailScreen({ navigation, route }: any) {
   // travels one full screen. Also recomputed on iPad rotation.
   const { width: SCREEN_W } = useWindowDimensions();
 
-  const [sessionOpen, setSessionOpen] = useState(false);
-  const [pagesSheetOpen, setPagesSheetOpen] = useState(false);
-  const [chooserOpen, setChooserOpen] = useState(false);
+  // Unified reading-session sheet (replaces old chooser + SessionSheet + AddPagesSheet).
+  const [readingSessionOpen, setReadingSessionOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -128,22 +126,23 @@ export function BookDetailScreen({ navigation, route }: any) {
     }
   }, [active?.elapsedSeconds, active?.running, active?.targetSeconds]);
 
-  const startSession = (targetSeconds: number) => {
+  /** Receives a Block config from ReadingSessionSheet and arms the timer +
+   *  MiniSessionBar. The sheet closes itself before calling. */
+  const startSession = (cfg: Pick<ActiveSession, 'startPage' | 'endPage' | 'targetSeconds'>) => {
     setActive({
-      startPage: book?.current_page ?? 0,
-      endPage:   book?.current_page ?? 0,
-      targetSeconds,
+      startPage: cfg.startPage,
+      endPage:   cfg.endPage,
+      targetSeconds: cfg.targetSeconds,
       elapsedSeconds: 0,
       running: true,
     });
     completedFiredRef.current = false;
     setBarExpanded(false);
-    setSessionOpen(false);
   };
 
   const togglePauseResume = () => setActive(s => s ? { ...s, running: !s.running } : null);
   const resetTimer = () => { completedFiredRef.current = false; setActive(s => s ? { ...s, elapsedSeconds: 0, running: true } : null); };
-  const cancelSession = () => { setActive(null); setBarExpanded(false); setSessionOpen(false); };
+  const cancelSession = () => { setActive(null); setBarExpanded(false); };
   const setActiveEndPage = (n: number) => setActive(s => s ? { ...s, endPage: n } : null);
 
   const saveActiveSession = async () => {
@@ -163,7 +162,6 @@ export function BookDetailScreen({ navigation, route }: any) {
       hSuccess();
       setActive(null);
       setBarExpanded(false);
-      setSessionOpen(false);
       refresh();
     } catch (e: any) {
       Alert.alert('Could not save', e?.message || 'Unknown error');
@@ -319,7 +317,7 @@ export function BookDetailScreen({ navigation, route }: any) {
                   <Pressable onPress={() => adjustPage(-1)} style={stepBtn}><Minus size={14} color={C.textPrimary} /></Pressable>
                   <Pressable onPress={() => adjustPage(1)} style={stepBtn}><Plus size={14} color={C.textPrimary} /></Pressable>
                   <View style={{ flex: 1 }} />
-                  <GoldButton variant="complete" size="md" onPress={() => active ? setBarExpanded(true) : setChooserOpen(true)}>
+                  <GoldButton variant="complete" size="md" onPress={() => active ? setBarExpanded(true) : setReadingSessionOpen(true)}>
                     {active ? 'Open block' : '+ Session'}
                   </GoldButton>
                 </View>
@@ -517,42 +515,17 @@ export function BookDetailScreen({ navigation, route }: any) {
         )}
       </KeyboardAvoidingView>
 
-      <SessionSheet
-        visible={sessionOpen}
-        onDismiss={() => setSessionOpen(false)}
-        bookCurrentPage={book.current_page}
-        onStart={startSession}
-      />
-      <AddPagesSheet
-        visible={pagesSheetOpen}
-        onDismiss={() => setPagesSheetOpen(false)}
+      {/* Unified reading session — segmented "Add pages" / "Reading block"
+          on a single VYB v2 creation sheet. Replaces the old chooser
+          ActionMenu + SessionSheet + AddPagesSheet trio. */}
+      <ReadingSessionSheet
+        visible={readingSessionOpen}
+        onDismiss={() => setReadingSessionOpen(false)}
         onSaved={refresh}
+        onStartBlock={startSession}
         bookId={book.id}
         bookCurrentPage={book.current_page}
         totalPages={book.total_pages}
-      />
-
-      {/* Session chooser — unified: Add pages OR Start reading block.
-          "Start reading block" opens SessionSheet (15/30/60 + steppers) →
-          MiniSessionBar timer with page tracking. The full-screen Focus
-          Mode is reachable from the main Focus tab; we don't duplicate it
-          here to avoid confusion between two reading-focus actions. */}
-      <ActionMenu
-        visible={chooserOpen}
-        onDismiss={() => setChooserOpen(false)}
-        title="Reading session"
-        options={[
-          {
-            label: 'Add pages',
-            icon: <PlusSquare size={16} color={C.textPrimary} />,
-            onPress: () => setPagesSheetOpen(true),
-          },
-          {
-            label: 'Start reading block',
-            icon: <TimerIcon size={16} color={C.gold} />,
-            onPress: () => setSessionOpen(true),
-          },
-        ]}
       />
 
       <EditBookSheet

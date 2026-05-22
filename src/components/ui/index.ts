@@ -29,6 +29,7 @@ export { VYBScreenHeader } from './VYBScreenHeader';
 export { VYBInput } from './VYBInput';
 export type { VYBInputProps } from './VYBInput';
 export { VYBComposer } from './VYBComposer';
+export { VYBCreationSheet } from './VYBCreationSheet';
 
 // ─── Circles / Challenges / Leaderboard system ─────────────────────────
 export { VYBGlassCard } from './VYBGlassCard';
