@@ -207,7 +207,13 @@ export function AddBookSheet({
     && (status !== 'reading' || (pages.length > 0));
 
   return (
-    <DraggableSheet visible={visible} onDismiss={onDismiss} showClose={false} maxHeightFraction={0.95}>
+    <DraggableSheet
+      visible={visible}
+      onDismiss={onDismiss}
+      showClose={false}
+      maxHeightFraction={0.95}
+      keyboardAvoiding={false}
+    >
       <SheetHeader
         title={mode === 'search' ? 'Add a book' : mode === 'preview' ? 'Confirm book' : 'Manual entry'}
         onClose={onDismiss}
@@ -286,7 +292,13 @@ function SearchMode({
         )}
       </View>
 
-      <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+        contentInsetAdjustmentBehavior="automatic"
+      >
         {searching && (
           <View style={{ paddingVertical: 32, alignItems: 'center', gap: 12 }}>
             <ActivityIndicator color={C.gold} />
@@ -347,7 +359,14 @@ function ConfirmMode({
   canSave, busy, onSave, onChooseAnother,
 }: any) {
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 16 }}>
+    <ScrollView
+      style={{ flex: 1 }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      automaticallyAdjustKeyboardInsets
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ paddingBottom: 16 }}
+    >
       {/* Book summary — horizontal */}
       {mode === 'preview' ? (
         <View style={{ flexDirection: 'row', gap: 16, marginBottom: 22 }}>

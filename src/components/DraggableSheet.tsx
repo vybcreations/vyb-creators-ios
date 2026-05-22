@@ -12,12 +12,21 @@ import { colors as C, fonts as F, radius as R, KEYBOARD_GAP } from '../theme';
 // default and get an absolutely-positioned X.
 export function DraggableSheet({
   visible, onDismiss, children, maxHeightFraction = 0.92, showClose = true,
+  keyboardAvoiding = true,
 }: {
   visible: boolean;
   onDismiss: () => void;
   children: React.ReactNode;
   maxHeightFraction?: number;
   showClose?: boolean;
+  /** When true (default), the whole sheet is wrapped in a KeyboardAvoidingView
+   *  that lifts the sheet above the keyboard. This is correct for short
+   *  sheets but overshoots for near-full-height sheets (the sheet would slide
+   *  off the top of the screen). For tall sheets (maxHeightFraction ≥ 0.9)
+   *  with forms, pass `keyboardAvoiding={false}` and handle keyboard insets
+   *  inside the sheet body (e.g. ScrollView w/ keyboardShouldPersistTaps +
+   *  automaticallyAdjustKeyboardInsets, or an inner KAV around just the form). */
+  keyboardAvoiding?: boolean;
 }) {
   const slide = useRef(new Animated.Value(0)).current;
   const drag  = useRef(new Animated.Value(0)).current;
@@ -63,7 +72,7 @@ export function DraggableSheet({
         <Animated.View pointerEvents="none"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: backdropOpacity }} />
         <Pressable onPress={onDismiss} style={{ flex: 1 }} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={-KEYBOARD_GAP}>
+        <ConditionalKAV enabled={keyboardAvoiding}>
           <Animated.View style={{ transform: [{ translateY }], maxHeight: `${maxHeightFraction * 100}%` as any }}>
             <SafeAreaView edges={['bottom']} style={{
               backgroundColor: C.bgElevated,
@@ -96,9 +105,18 @@ export function DraggableSheet({
               )}
             </SafeAreaView>
           </Animated.View>
-        </KeyboardAvoidingView>
+        </ConditionalKAV>
       </View>
     </Modal>
+  );
+}
+
+function ConditionalKAV({ enabled, children }: { enabled: boolean; children: React.ReactNode }) {
+  if (!enabled) return <>{children}</>;
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={-KEYBOARD_GAP}>
+      {children}
+    </KeyboardAvoidingView>
   );
 }
 
