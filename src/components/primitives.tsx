@@ -68,6 +68,17 @@ export function Pill({
   );
 }
 
+function isTextLike(c: React.ReactNode): boolean {
+  if (c == null || typeof c === 'boolean') return false;
+  if (typeof c === 'string' || typeof c === 'number') return true;
+  if (Array.isArray(c)) {
+    return c.every(ch =>
+      ch == null || typeof ch === 'boolean' ||
+      typeof ch === 'string' || typeof ch === 'number');
+  }
+  return false;
+}
+
 // ─── GoldButton ────────────────────────────────────────────
 type ButtonVariant = 'complete' | 'progress' | 'primary' | 'secondary' | 'ghost';
 export function GoldButton({
@@ -109,9 +120,14 @@ export function GoldButton({
       ) : (
         <>
           {icon}
-          {typeof children === 'string' ? (
+          {/* Wrap any text-like children (string, number, or an array of
+              those — e.g. `Start {minutes} min focus`) inside a Text node.
+              Without this, RN throws "Text strings must be rendered within
+              a <Text> component" the moment a caller embeds a number or
+              expression in the button label. */}
+          {isTextLike(children) ? (
             <Text style={{ fontFamily: F.sansBold, fontSize: s.fs, color: v.color, letterSpacing: 0.3 }}>
-              {children}
+              {children as any}
             </Text>
           ) : children}
           {trailingIcon}

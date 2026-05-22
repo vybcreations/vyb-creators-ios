@@ -223,10 +223,12 @@ export function AddBookSheet({
           </Pressable>
         ) : undefined}
       />
-      {/* flex:1 + min-height so the sheet locks at near-full-screen and the
-          keyboard appearance can't squeeze the container into a smaller frame
-          mid-animation. */}
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
+      {/* The sheet's parent (DraggableSheet Animated.View) sizes to content
+          (it has maxHeight, not flex). So flex:1 alone collapses to 0 —
+          minHeight gives the sheet enough natural height to actually render
+          the search/form, and the inner ScrollViews then own their own
+          keyboard insets via automaticallyAdjustKeyboardInsets. */}
+      <View style={{ minHeight: 560, paddingHorizontal: 20, paddingBottom: 20 }}>
 
         {mode === 'search' && (
           <SearchMode
@@ -293,7 +295,7 @@ function SearchMode({
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ maxHeight: 480 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
@@ -360,12 +362,11 @@ function ConfirmMode({
 }: any) {
   return (
     <ScrollView
-      style={{ flex: 1 }}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="interactive"
       automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ paddingBottom: 16 }}
+      contentContainerStyle={{ paddingBottom: 24 }}
     >
       {/* Book summary — horizontal */}
       {mode === 'preview' ? (

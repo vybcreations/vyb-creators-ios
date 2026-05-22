@@ -549,7 +549,11 @@ export function BookDetailScreen({ navigation, route }: any) {
           {
             label: 'Open Focus Mode',
             icon: <TimerIcon size={16} color={C.gold} />,
-            onPress: () => navigation.getParent()?.navigate('Focus', {
+            // BookDetail is itself a Stack screen sibling of Focus, so we
+            // navigate on its own navigator (no getParent — that would
+            // return the root container which doesn't expose `navigate`
+            // for the Focus route).
+            onPress: () => navigation.navigate('Focus', {
               task: book.title,
               minutes: 25,
             }),
