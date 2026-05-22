@@ -56,8 +56,12 @@ export function DraggableSheet({
 
   const pan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 2,
+      // Don't claim the responder on touch START — that lets taps (X, Save,
+      // chips, etc.) through. Only steal the gesture once the user drags
+      // downward by a few px, so swipe-to-dismiss works from any area we
+      // attach the handlers to without breaking taps inside it.
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => { if (g.dy > 0) drag.setValue(g.dy); },
       onPanResponderRelease: (_, g) => {
         const shouldClose = g.dy > 120 || g.vy > 0.6;
@@ -107,7 +111,7 @@ export function DraggableSheet({
           }}>
             <SafeAreaView edges={['bottom']} style={{
               flex: fillSheet ? 1 : undefined,
-              backgroundColor: surface === 'glass' ? 'rgba(13,12,11,0.55)' : C.bgElevated,
+              backgroundColor: surface === 'glass' ? 'rgba(13,12,11,0.78)' : C.bgElevated,
               borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl,
               ...(tabletWidth ? { borderBottomLeftRadius: R.xl, borderBottomRightRadius: R.xl } : null),
               borderColor: surface === 'glass' ? 'rgba(255,255,255,0.14)' : C.borderMid,
@@ -131,12 +135,23 @@ export function DraggableSheet({
                   style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 36 }}
                 />
               )}
-              {/* Centered drag handle at the very top */}
+              {/* Drag zone — handle. Pan handlers also wrap the header
+                  strip of `children` (see below) so users can swipe down
+                  from the title area too. Body content scrolls
+                  independently because the responder only claims on
+                  downward MOVE, not on touch start. */}
               <View {...pan.panHandlers} style={{ paddingTop: 10, paddingBottom: 8, alignItems: 'center' }}>
                 <View style={{ width: 38, height: 4, borderRadius: 2, backgroundColor: C.borderStrong }} />
               </View>
 
-              {children}
+              <View {...pan.panHandlers} style={{ flexShrink: 0 }}>
+                {/* The sheet's first child is conventionally the SheetHeader
+                    (title + X). Wrapping it in panHandlers lets the user
+                    swipe down from the title bar to dismiss. Taps on X /
+                    back arrow still work because we only claim on move. */}
+                {React.Children.toArray(children)[0]}
+              </View>
+              {React.Children.toArray(children).slice(1)}
 
               {/* Fallback X for sheets that don't use <SheetHeader>. Absolutely
                   positioned at the top-right of the sheet body. */}

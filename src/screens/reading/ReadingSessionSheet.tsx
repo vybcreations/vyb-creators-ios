@@ -229,11 +229,21 @@ function PagesPanel({
       </VYBCard>
 
       <GoldButton
-        variant="complete" size="lg" onPress={onSave}
+        variant="complete" size="lg"
+        onPress={onSave}
         loading={busy}
+        disabled={pagesRead <= 0}
         style={{ alignSelf: 'stretch', justifyContent: 'center' }}>
         Save
       </GoldButton>
+      {pagesRead <= 0 && (
+        <Text style={{
+          fontFamily: F.sans, fontSize: 11.5, color: C.textMuted,
+          textAlign: 'center', marginTop: 10,
+        }}>
+          Bump the end page above {start} to save.
+        </Text>
+      )}
     </>
   );
 }

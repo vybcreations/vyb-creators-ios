@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, FlatList, Pressable, ActivityIndicator, Alert,
   NativeScrollEvent, NativeSyntheticEvent, useWindowDimensions,
-  KeyboardAvoidingView, Platform, Keyboard, Animated,
+  Platform, Keyboard, Animated, Easing,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import { IconButton, GoldButton, Tx } from '../components/primitives';
 import { VYBCard, VYBScreenHeader, VYBEmpty } from '../components/ui';
 import { BookCover3D } from '../components/BookCover3D';
 import { colors as C, fonts as F, KEYBOARD_GAP } from '../theme';
+import { useComposerLayout, composerLiftFor } from '../lib/layout';
 import { useAuth } from '../lib/auth';
 import {
   useBook, updateBook, deleteEntry, restoreEntry, deleteSession,
@@ -188,6 +189,38 @@ export function BookDetailScreen({ navigation, route }: any) {
     return () => { s.remove(); h.remove(); };
   }, []);
 
+  // Bottom-anchored composer/miniBar/switcher uses the same keyboard-safe
+  // pattern as Tasks (useComposerLayout + composerLiftFor). Avoids the
+  // KAV-based behavior that left the composer under the iOS predictive bar
+  // and caused the pager to resize as the composer mounted/unmounted.
+  const { restingBottom } = useComposerLayout();
+  const composerBottom = useRef(new Animated.Value(restingBottom)).current;
+  useEffect(() => { composerBottom.setValue(restingBottom); }, [restingBottom]);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    // iOS's keyboardWillShow doesn't always include the predictive bar
+    // height; bump the lift by ~26pt so the composer + page chip clear it.
+    const PREDICTIVE_PAD = Platform.OS === 'ios' ? 26 : 0;
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      Animated.timing(composerBottom, {
+        toValue: composerLiftFor((e.endCoordinates?.height ?? 0) + PREDICTIVE_PAD, KEYBOARD_GAP, restingBottom),
+        duration: (e as any).duration || 250,
+        easing: Easing.bezier(0.22, 1, 0.36, 1),
+        useNativeDriver: false,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener(hideEvt, (e) => {
+      Animated.timing(composerBottom, {
+        toValue: restingBottom,
+        duration: (e as any).duration || 250,
+        easing: Easing.bezier(0.22, 1, 0.36, 1),
+        useNativeDriver: false,
+      }).start();
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, [restingBottom]);
+
   if (loading || !book) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bgBase, alignItems: 'center', justifyContent: 'center' }}>
@@ -266,6 +299,11 @@ export function BookDetailScreen({ navigation, route }: any) {
           (Book swiping outward, Entries swiping outward) — the user can pull a
           little, feels the resistance, and snaps back. They never reach an
           empty panel because pagingEnabled snaps to the nearest valid page. */}
+      {/* Pager wrapper — reserves bottom space so the absolutely-positioned
+          composer + switcher group never sits on top of the Book/Entries
+          content. ~120pt covers resting offset + composer + switcher
+          stack on iPhone. */}
+      <View style={{ flex: 1, paddingBottom: 120 }}>
       <ScrollView
         ref={hScrollRef}
         horizontal pagingEnabled
@@ -448,18 +486,18 @@ export function BookDetailScreen({ navigation, route }: any) {
           </View>
         </View>
       </ScrollView>
+      </View>
 
-      {/* Bottom area — composer (entries only) + mini bar + switcher.
-          KAV lifts the composer above the keyboard. Offset is bumped
-          (was -KEYBOARD_GAP / -20) to give clearer breathing room above
-          the keyboard — the SafeAreaView's bottom edge eats ~34pt of the
-          lift, so the smaller offset left the composer almost touching
-          the keyboard. */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={-(KEYBOARD_GAP + 28)}
+      {/* Bottom-anchored stack — composer (Entries only) + mini bar +
+          switcher. Absolutely positioned so it doesn't change the pager's
+          layout when composer mounts/unmounts (fixes the sessions
+          stretch/jump). Keyboard-tracked via composerBottom Animated.Value
+          so it always sits the same distance above the keyboard +
+          predictive bar. */}
+      <Animated.View
+        pointerEvents="box-none"
+        style={{ position: 'absolute', left: 0, right: 0, bottom: composerBottom }}
       >
-        {/* Composer — fades + slides in/out with the Entries panel */}
         {composerMounted && (
           <Animated.View
             pointerEvents={page === 1 ? 'auto' : 'none'}
@@ -500,7 +538,8 @@ export function BookDetailScreen({ navigation, route }: any) {
           </Animated.View>
         )}
 
-        {/* Switcher — hidden while keyboard is open so it doesn't ride up with the composer */}
+        {/* Book/Entries switcher — hidden while keyboard is open so it
+            doesn't sit on top of the composer. */}
         {!keyboardOpen && (
           <View style={{ paddingHorizontal: 22, paddingTop: 6, paddingBottom: 4, alignItems: 'center' }}>
             <View style={{
@@ -513,7 +552,7 @@ export function BookDetailScreen({ navigation, route }: any) {
             </View>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </Animated.View>
 
       {/* Unified reading session — segmented "Add pages" / "Reading block"
           on a single VYB v2 creation sheet. Replaces the old chooser
