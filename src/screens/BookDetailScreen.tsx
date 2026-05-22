@@ -7,11 +7,12 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ChevronLeft, Plus, Sparkles, Quote, FileText, MoreHorizontal,
+  Plus, Sparkles, Quote, FileText, MoreHorizontal,
   Minus, Trash2, Timer as TimerIcon, PlusSquare, Star,
 } from 'lucide-react-native';
 import { useFavoriteBooks, toggleFavoriteBook, FavoriteLimitError } from '../lib/favoriteBooks';
 import { IconButton, GoldButton, Tx } from '../components/primitives';
+import { VYBCard, VYBScreenHeader, VYBEmpty } from '../components/ui';
 import { BookCover3D } from '../components/BookCover3D';
 import { ActionMenu } from '../components/ActionMenu';
 import { colors as C, fonts as F, KEYBOARD_GAP } from '../theme';
@@ -245,15 +246,21 @@ export function BookDetailScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bgBase }} edges={['top', 'bottom']}>
-      {/* Header — fixed */}
-      <View style={{ paddingHorizontal: 8, paddingVertical: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <IconButton size={36} onPress={() => navigation.goBack()}><ChevronLeft size={18} color={C.textPrimary} /></IconButton>
-        <Text style={Tx.label({ letterSpacing: 1.4 })}>{book.status.toUpperCase()}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <FavoriteStarButton bookId={book.id} />
-          <IconButton size={36} onPress={() => setEditOpen(true)}><MoreHorizontal size={16} color={C.textPrimary} /></IconButton>
-        </View>
-      </View>
+      {/* Header — back · centered status · favorite + menu.
+          variant="detail" gives a fixed 3-column layout so the status label is
+          always centered on the screen, not pushed by the right-side actions. */}
+      <VYBScreenHeader
+        variant="detail"
+        back
+        onBack={() => navigation.goBack()}
+        title={book.status.toUpperCase()}
+        rightAction={
+          <>
+            <FavoriteStarButton bookId={book.id} />
+            <IconButton size={36} onPress={() => setEditOpen(true)}><MoreHorizontal size={16} color={C.textPrimary} /></IconButton>
+          </>
+        }
+      />
 
       {/* Swipeable panels — flex:1 so panels fill the viewport. No root vertical
           scroll. Pager is disabled while the user is interacting with the cover.
@@ -292,48 +299,49 @@ export function BookDetailScreen({ navigation, route }: any) {
 
           {/* Progress card — hidden for wishlist books (not active reading) */}
           {!isWishlist && (
-            <View style={{ marginHorizontal: 16, marginTop: 14, padding: 16, borderRadius: 22,
-              backgroundColor: C.bgElevated, borderColor: C.borderSubtle, borderWidth: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6 }}>
-                  <Text style={{ fontFamily: F.sansHeavy, fontSize: 36, color: C.goldBright, letterSpacing: -1.2, lineHeight: 36 }}>{pct}</Text>
-                  <Text style={{ fontFamily: F.sansHeavy, fontSize: 18, color: C.goldBright, marginBottom: 4 }}>%</Text>
+            <View style={{ marginHorizontal: 16, marginTop: 14 }}>
+              <VYBCard level="widget" accent="gold" padding={16}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6 }}>
+                    <Text style={{ fontFamily: F.sansHeavy, fontSize: 36, color: C.goldBright, letterSpacing: -1.2, lineHeight: 36 }}>{pct}</Text>
+                    <Text style={{ fontFamily: F.sansHeavy, fontSize: 18, color: C.goldBright, marginBottom: 4 }}>%</Text>
+                  </View>
+                  <Text style={{ fontFamily: F.mono, fontSize: 12, color: C.textMuted }}>
+                    {book.current_page}{book.total_pages ? ` / ${book.total_pages}` : ''}
+                  </Text>
                 </View>
-                <Text style={{ fontFamily: F.mono, fontSize: 12, color: C.textMuted }}>
-                  {book.current_page}{book.total_pages ? ` / ${book.total_pages}` : ''}
-                </Text>
-              </View>
 
-              <View style={{ height: 4, backgroundColor: C.borderSubtle, borderRadius: 2, overflow: 'hidden' }}>
-                <View style={{ width: `${pct}%`, height: '100%', backgroundColor: C.gold }} />
-              </View>
+                <View style={{ height: 4, backgroundColor: C.borderSubtle, borderRadius: 2, overflow: 'hidden' }}>
+                  <View style={{ width: `${pct}%`, height: '100%', backgroundColor: C.gold }} />
+                </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
-                <Pressable onPress={() => adjustPage(-1)} style={stepBtn}><Minus size={14} color={C.textPrimary} /></Pressable>
-                <Pressable onPress={() => adjustPage(1)} style={stepBtn}><Plus size={14} color={C.textPrimary} /></Pressable>
-                <View style={{ flex: 1 }} />
-                <GoldButton variant="complete" size="md" onPress={() => active ? setBarExpanded(true) : setChooserOpen(true)}>
-                  {active ? 'Open block' : '+ Session'}
-                </GoldButton>
-              </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                  <Pressable onPress={() => adjustPage(-1)} style={stepBtn}><Minus size={14} color={C.textPrimary} /></Pressable>
+                  <Pressable onPress={() => adjustPage(1)} style={stepBtn}><Plus size={14} color={C.textPrimary} /></Pressable>
+                  <View style={{ flex: 1 }} />
+                  <GoldButton variant="complete" size="md" onPress={() => active ? setBarExpanded(true) : setChooserOpen(true)}>
+                    {active ? 'Open block' : '+ Session'}
+                  </GoldButton>
+                </View>
+              </VYBCard>
             </View>
           )}
 
           {/* Wishlist state — calm CTA, no progress / sessions */}
           {isWishlist && (
-            <View style={{
-              marginHorizontal: 16, marginTop: 14, padding: 22, borderRadius: 22,
-              backgroundColor: C.bgElevated, borderColor: C.borderSubtle, borderWidth: 1,
-              alignItems: 'center',
-            }}>
-              <Text style={Tx.label({ letterSpacing: 2 })}>WISHLIST</Text>
-              <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.textMuted, textAlign: 'center', marginTop: 10, lineHeight: 20 }}>
-                Not yet started. Set your starting page when you're ready.
-              </Text>
-              <GoldButton variant="complete" size="lg" onPress={() => setStartOpen(true)}
-                style={{ marginTop: 18, paddingHorizontal: 28 }}>
-                Start reading
-              </GoldButton>
+            <View style={{ marginHorizontal: 16, marginTop: 14 }}>
+              <VYBCard level="widget" padding={22}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={Tx.label({ letterSpacing: 2 })}>WISHLIST</Text>
+                  <Text style={{ fontFamily: F.serifItalic, fontSize: 15, color: C.textMuted, textAlign: 'center', marginTop: 10, lineHeight: 20 }}>
+                    Not yet started. Set your starting page when you're ready.
+                  </Text>
+                  <GoldButton variant="complete" size="lg" onPress={() => setStartOpen(true)}
+                    style={{ marginTop: 18, paddingHorizontal: 28 }}>
+                    Start reading
+                  </GoldButton>
+                </View>
+              </VYBCard>
             </View>
           )}
 
@@ -345,14 +353,10 @@ export function BookDetailScreen({ navigation, route }: any) {
               SESSIONS · {sessions.length}
             </Text>
             {sessions.length === 0 ? (
-              <View style={{
-                padding: 18, borderRadius: 14, borderColor: C.borderSubtle, borderWidth: 1, borderStyle: 'dashed',
-                alignItems: 'center',
-              }}>
-                <Text style={{ fontFamily: F.serifItalic, fontSize: 13, color: C.textMuted, textAlign: 'center' }}>
-                  No sessions yet. Start a session above.
-                </Text>
-              </View>
+              <VYBEmpty
+                variant="dashed"
+                title="No sessions yet. Start a session above."
+              />
             ) : (
               <View style={{ flex: 1, backgroundColor: C.bgElevated, borderColor: C.borderSubtle, borderWidth: 1, borderRadius: 18, overflow: 'hidden' }}>
                 <FlatList

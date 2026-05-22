@@ -29,6 +29,7 @@ const DIMENSIONS: Record<Size, { w: number; h: number; radius: number }> = {
 export function VYBBookCover({
   coverUrl, title, author,
   size = 'md', favorite, fallback,
+  width, height,
   showTitle = false, showAuthor = false, style,
 }: {
   coverUrl?: string | null;
@@ -38,11 +39,19 @@ export function VYBBookCover({
   favorite?: boolean;
   /** Custom fallback element when no coverUrl. Defaults to initials gradient. */
   fallback?: React.ReactNode;
+  /** Override the preset width/height — useful for responsive grids. */
+  width?: number;
+  height?: number;
   showTitle?: boolean;
   showAuthor?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const dims = DIMENSIONS[size];
+  const preset = DIMENSIONS[size];
+  const dims = {
+    w: width ?? preset.w,
+    h: height ?? preset.h,
+    radius: preset.radius,
+  };
   const frame = favorite
     ? { borderColor: 'rgba(201,169,97,0.65)', borderWidth: 1.5 }
     : { borderColor: 'rgba(201,169,97,0.20)', borderWidth: 1 };

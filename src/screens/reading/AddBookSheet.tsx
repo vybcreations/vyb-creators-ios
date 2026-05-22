@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Image, Keyboard } from 'react-native';
+import { View, Text, TextInput, Pressable, Alert, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
 import { Search, X, ArrowLeft } from 'lucide-react-native';
 import { DraggableSheet, SheetHeader } from '../../components/DraggableSheet';
-import { GoldButton, Pill } from '../../components/primitives';
+import { GoldButton } from '../../components/primitives';
+import { VYBChip, VYBBookCover, VYBInput, VYBEmpty } from '../../components/ui';
 import { colors as C, fonts as F } from '../../theme';
 import { searchBooks, BookSearchResult } from '../../lib/booksearch';
 import { resolvePageCount } from '../../lib/books/pageCount';
@@ -260,27 +261,23 @@ function SearchMode({
   const hasResults = results.length > 0;
   return (
     <>
-      <View style={{
-        flexDirection: 'row', alignItems: 'center', gap: 10,
-        backgroundColor: C.bgOverlay, borderColor: C.borderMid, borderWidth: 1,
-        borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12,
-      }}>
-        <Pressable onPress={onSubmit} hitSlop={6}>
-          <Search size={16} color={query.trim().length > 0 ? C.gold : C.textMuted} />
-        </Pressable>
-        <TextInput
+      <View style={{ marginBottom: 12 }}>
+        <VYBInput
           ref={searchRef}
           value={query} onChangeText={setQuery}
           onSubmitEditing={onSubmit}
           placeholder="Search title, author, ISBN…"
-          placeholderTextColor={C.textFaint}
           autoCapitalize="none" autoCorrect={false}
           returnKeyType="search"
           selectionColor={C.gold}
-          style={{ flex: 1, fontFamily: F.sans, fontSize: 15, color: C.textPrimary }}
+          icon={
+            <Pressable onPress={onSubmit} hitSlop={6}>
+              <Search size={16} color={query.trim().length > 0 ? C.gold : C.textMuted} />
+            </Pressable>
+          }
         />
         {query.length > 0 && (
-          <Pressable onPress={onClear} hitSlop={10}>
+          <Pressable onPress={onClear} hitSlop={10} style={{ position: 'absolute', right: 14, top: 14 }}>
             <X size={14} color={C.textMuted} />
           </Pressable>
         )}
@@ -298,28 +295,24 @@ function SearchMode({
 
         {/* Both providers actually errored out */}
         {!searching && hasSearched && providersDown && (
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.textPrimary, textAlign: 'center', marginBottom: 6 }}>
-              Search is temporarily unavailable.
-            </Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.textMuted, textAlign: 'center', marginBottom: 14 }}>
-              You can add this book manually.
-            </Text>
-            <GoldButton variant="secondary" size="md" onPress={onManual}>Add manually</GoldButton>
-          </View>
+          <VYBEmpty
+            variant="simple"
+            title="Search is temporarily unavailable."
+            body="You can add this book manually."
+            actionLabel="Add manually"
+            onAction={onManual}
+          />
         )}
 
         {/* APIs answered but returned nothing */}
         {!searching && hasSearched && !providersDown && !hasResults && (
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.textPrimary, textAlign: 'center', marginBottom: 6 }}>
-              No results found.
-            </Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 12, color: C.textMuted, textAlign: 'center', marginBottom: 14 }}>
-              Try a different keyword, or add it manually.
-            </Text>
-            <GoldButton variant="secondary" size="md" onPress={onManual}>Add manually</GoldButton>
-          </View>
+          <VYBEmpty
+            variant="simple"
+            title="No results found."
+            body="Try a different keyword, or add it manually."
+            actionLabel="Add manually"
+            onAction={onManual}
+          />
         )}
 
         {/* Results — trust the API ordering, no client-side filtering */}
@@ -329,12 +322,12 @@ function SearchMode({
 
         {/* Pre-search prompt */}
         {!searching && !hasSearched && (
-          <View style={{ padding: 28, alignItems: 'center' }}>
-            <Text style={{ fontFamily: F.serifItalic, fontSize: 14, color: C.textMuted, textAlign: 'center', marginBottom: 14 }}>
-              Type a title or author, then press search.
-            </Text>
-            <GoldButton variant="ghost" size="md" onPress={onManual}>Or add manually</GoldButton>
-          </View>
+          <VYBEmpty
+            variant="simple"
+            title="Type a title or author, then press search."
+            actionLabel="Or add manually"
+            onAction={onManual}
+          />
         )}
       </ScrollView>
     </>
@@ -355,7 +348,7 @@ function ConfirmMode({
       {/* Book summary — horizontal */}
       {mode === 'preview' ? (
         <View style={{ flexDirection: 'row', gap: 16, marginBottom: 22 }}>
-          <Cover url={coverUrl} title={title} width={94} height={140} />
+          <VYBBookCover coverUrl={coverUrl} title={title} size="md" width={94} height={140} />
           <View style={{ flex: 1, justifyContent: 'space-between' }}>
             <View>
               <Text numberOfLines={3} style={{ fontFamily: F.sansBold, fontSize: 17, color: C.textPrimary, letterSpacing: -0.2, lineHeight: 22 }}>
@@ -390,9 +383,18 @@ function ConfirmMode({
       {/* Status */}
       <SectionLabel>STATUS</SectionLabel>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 18 }}>
-        <StatusPill label="Reading"  active={status === 'reading'}  onPress={() => setStatus('reading')} />
-        <StatusPill label="Finished" active={status === 'finished'} onPress={() => setStatus('finished')} />
-        <StatusPill label="Wishlist" active={status === 'next'}     onPress={() => setStatus('next')} />
+        {(['reading', 'finished', 'next'] as const).map(s => (
+          <View key={s} style={{ flex: 1 }}>
+            <VYBChip
+              label={s === 'reading' ? 'Reading' : s === 'finished' ? 'Finished' : 'Wishlist'}
+              tone="gold"
+              selected={status === s}
+              size="lg"
+              onPress={() => { hSelection(); setStatus(s); }}
+              style={{ width: '100%', justifyContent: 'center' }}
+            />
+          </View>
+        ))}
       </View>
 
       {/* Conditional fields */}
@@ -456,7 +458,7 @@ function ResultRow({ r, onChoose }: { r: BookSearchResult; onChoose: (r: BookSea
       flexDirection: 'row', gap: 12, paddingVertical: 10,
       borderBottomColor: C.borderSubtle, borderBottomWidth: 1,
     }}>
-      <Cover url={r.cover_url} title={r.title} width={44} height={62} />
+      <VYBBookCover coverUrl={r.cover_url} title={r.title} size="xs" width={44} height={62} />
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <Text numberOfLines={2} style={{ fontFamily: F.sansBold, fontSize: 14, color: C.textPrimary, letterSpacing: -0.1 }}>{r.title}</Text>
         {r.author && <Text numberOfLines={1} style={{ fontFamily: F.serifItalic, fontSize: 12, color: C.textMuted, marginTop: 2 }}>{r.author}</Text>}
@@ -472,16 +474,12 @@ function ResultRow({ r, onChoose }: { r: BookSearchResult; onChoose: (r: BookSea
 function FieldWithAdornment({ label, value, onChange, placeholder, keyboardType, adornment }: any) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <SectionLabel>{String(label).toUpperCase()}</SectionLabel>
-      <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomColor: C.borderMid, borderBottomWidth: 1 }}>
-        <TextInput
-          value={value} onChangeText={onChange} placeholder={placeholder}
-          placeholderTextColor={C.textFaint}
-          keyboardType={keyboardType} selectionColor={C.gold}
-          style={{ flex: 1, fontFamily: F.sans, fontSize: 15, color: C.textPrimary, paddingVertical: 8, marginTop: 4 }}
-        />
-        {adornment ? <View style={{ paddingHorizontal: 6 }}>{adornment}</View> : null}
-      </View>
+      <SectionLabel style={{ marginBottom: 6 }}>{String(label).toUpperCase()}</SectionLabel>
+      <VYBInput
+        value={value} onChangeText={onChange} placeholder={placeholder}
+        keyboardType={keyboardType} selectionColor={C.gold}
+        icon={adornment ? <View>{adornment}</View> : undefined}
+      />
     </View>
   );
 }
@@ -489,15 +487,10 @@ function FieldWithAdornment({ label, value, onChange, placeholder, keyboardType,
 function Field({ label, value, onChange, placeholder, keyboardType }: any) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <SectionLabel>{String(label).toUpperCase()}</SectionLabel>
-      <TextInput
+      <SectionLabel style={{ marginBottom: 6 }}>{String(label).toUpperCase()}</SectionLabel>
+      <VYBInput
         value={value} onChangeText={onChange} placeholder={placeholder}
-        placeholderTextColor={C.textFaint}
         keyboardType={keyboardType} selectionColor={C.gold}
-        style={{
-          fontFamily: F.sans, fontSize: 15, color: C.textPrimary,
-          borderBottomColor: C.borderMid, borderBottomWidth: 1, paddingVertical: 8, marginTop: 4,
-        }}
       />
     </View>
   );
@@ -512,21 +505,6 @@ function SectionLabel({ children, style }: any) {
   );
 }
 
-function StatusPill({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={() => { hSelection(); onPress(); }} style={{
-      flex: 1, height: 40, borderRadius: 999,
-      backgroundColor: active ? C.goldFaint : C.bgOverlay,
-      borderColor: active ? 'rgba(201,169,97,0.5)' : C.borderSubtle, borderWidth: 1,
-      alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: active ? C.gold : C.textSecondary, letterSpacing: 0.3 }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 function Tag({ children }: any) {
   return (
     <Text style={{
@@ -536,22 +514,3 @@ function Tag({ children }: any) {
   );
 }
 
-function Cover({ url, title, width, height }: { url: string | null; title: string; width: number; height: number }) {
-  if (url) {
-    return (
-      <Image source={{ uri: url }} resizeMode="cover"
-        style={{ width, height, borderRadius: 4, backgroundColor: C.bgOverlay }} />
-    );
-  }
-  return (
-    <View style={{
-      width, height, borderRadius: 4, backgroundColor: C.bgOverlay,
-      borderColor: C.borderSubtle, borderWidth: 1,
-      alignItems: 'center', justifyContent: 'center', padding: 6,
-    }}>
-      <Text style={{ fontFamily: F.serifItalic, fontSize: Math.min(11, width * 0.16), color: C.textMuted, textAlign: 'center' }} numberOfLines={3}>
-        {title || '—'}
-      </Text>
-    </View>
-  );
-}
