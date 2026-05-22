@@ -220,20 +220,6 @@ export function AddBookSheet({
       title={headerTitle}
       onBack={mode !== 'search' ? () => setMode('search') : undefined}
     >
-      {/* Dev-only proof marker — confirms the v2 build is what's rendering.
-          Strip this once we no longer need verification. */}
-      {__DEV__ && (
-        <View pointerEvents="none" style={{
-          position: 'absolute', top: 8, left: 0, right: 0, alignItems: 'center', zIndex: 50,
-        }}>
-          <Text style={{
-            fontFamily: F.mono, fontSize: 9, color: 'rgba(232,194,117,0.7)',
-            letterSpacing: 1.2, textTransform: 'uppercase',
-          }}>
-            AddBook v2
-          </Text>
-        </View>
-      )}
       <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
         {mode === 'search' ? (
           <SearchView

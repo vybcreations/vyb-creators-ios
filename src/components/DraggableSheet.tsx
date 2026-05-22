@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Easing, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { X } from 'lucide-react-native';
 import { colors as C, fonts as F, radius as R, KEYBOARD_GAP } from '../theme';
 import { useIsTablet } from '../lib/layout';
@@ -14,12 +16,20 @@ import { useIsTablet } from '../lib/layout';
 export function DraggableSheet({
   visible, onDismiss, children, maxHeightFraction = 0.92, showClose = true,
   keyboardAvoiding = true,
+  surface = 'solid',
 }: {
   visible: boolean;
   onDismiss: () => void;
   children: React.ReactNode;
   maxHeightFraction?: number;
   showClose?: boolean;
+  /** Sheet surface style.
+   *  - 'solid' (default): warm-black bgElevated — used by short sheets like
+   *    ActionMenu, HabitEditor, AreaEditor.
+   *  - 'glass': frosted BlurView (iOS) / layered translucent fill (Android)
+   *    with a soft top edge highlight. The new v2 creation-flow surface;
+   *    consumed by VYBCreationSheet → AddBookSheet, ReadingSessionSheet. */
+  surface?: 'solid' | 'glass';
   /** When true (default), the whole sheet is wrapped in a KeyboardAvoidingView
    *  that lifts the sheet above the keyboard. This is correct for short
    *  sheets but overshoots for near-full-height sheets (the sheet would slide
@@ -97,14 +107,30 @@ export function DraggableSheet({
           }}>
             <SafeAreaView edges={['bottom']} style={{
               flex: fillSheet ? 1 : undefined,
-              backgroundColor: C.bgElevated,
+              backgroundColor: surface === 'glass' ? 'rgba(13,12,11,0.55)' : C.bgElevated,
               borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl,
               ...(tabletWidth ? { borderBottomLeftRadius: R.xl, borderBottomRightRadius: R.xl } : null),
-              borderColor: C.borderMid,
+              borderColor: surface === 'glass' ? 'rgba(255,255,255,0.14)' : C.borderMid,
               borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
               ...(tabletWidth ? { borderBottomWidth: 1 } : null),
               shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 40, shadowOffset: { width: 0, height: -8 },
+              overflow: 'hidden',
             }}>
+              {/* Glass surface layers — only when surface='glass'. On iOS the
+                  native BlurView produces the frosted look; Android falls
+                  back to the layered translucent fill we already use in
+                  VYBGlassCard (BlurView on Android costs too much overdraw). */}
+              {surface === 'glass' && Platform.OS === 'ios' && (
+                <BlurView intensity={42} tint="dark" style={StyleSheet.absoluteFill} />
+              )}
+              {surface === 'glass' && (
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={['rgba(255,255,255,0.10)', 'rgba(255,255,255,0)']}
+                  start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+                  style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 36 }}
+                />
+              )}
               {/* Centered drag handle at the very top */}
               <View {...pan.panHandlers} style={{ paddingTop: 10, paddingBottom: 8, alignItems: 'center' }}>
                 <View style={{ width: 38, height: 4, borderRadius: 2, backgroundColor: C.borderStrong }} />

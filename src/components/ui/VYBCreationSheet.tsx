@@ -50,6 +50,7 @@ export function VYBCreationSheet({
       showClose={false}
       keyboardAvoiding={false}
       maxHeightFraction={maxHeightFraction}
+      surface="glass"
     >
       <SheetHeader
         title={title}
