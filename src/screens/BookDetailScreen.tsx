@@ -452,11 +452,14 @@ export function BookDetailScreen({ navigation, route }: any) {
       </ScrollView>
 
       {/* Bottom area — composer (entries only) + mini bar + switcher.
-          Wrapped in KeyboardAvoidingView so the composer lifts above the
-          keyboard when the user taps the input. */}
+          KAV lifts the composer above the keyboard. Offset is bumped
+          (was -KEYBOARD_GAP / -20) to give clearer breathing room above
+          the keyboard — the SafeAreaView's bottom edge eats ~34pt of the
+          lift, so the smaller offset left the composer almost touching
+          the keyboard. */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={-KEYBOARD_GAP}
+        keyboardVerticalOffset={-(KEYBOARD_GAP + 28)}
       >
         {/* Composer — fades + slides in/out with the Entries panel */}
         {composerMounted && (
@@ -529,8 +532,11 @@ export function BookDetailScreen({ navigation, route }: any) {
         totalPages={book.total_pages}
       />
 
-      {/* Session chooser — Add pages, in-book block (page-tracking), or
-          full-screen Focus Mode (uses the app's existing FocusScreen). */}
+      {/* Session chooser — unified: Add pages OR Start reading block.
+          "Start reading block" opens SessionSheet (15/30/60 + steppers) →
+          MiniSessionBar timer with page tracking. The full-screen Focus
+          Mode is reachable from the main Focus tab; we don't duplicate it
+          here to avoid confusion between two reading-focus actions. */}
       <ActionMenu
         visible={chooserOpen}
         onDismiss={() => setChooserOpen(false)}
@@ -543,20 +549,8 @@ export function BookDetailScreen({ navigation, route }: any) {
           },
           {
             label: 'Start reading block',
-            icon: <TimerIcon size={16} color={C.textPrimary} />,
-            onPress: () => setSessionOpen(true),
-          },
-          {
-            label: 'Open Focus Mode',
             icon: <TimerIcon size={16} color={C.gold} />,
-            // BookDetail is itself a Stack screen sibling of Focus, so we
-            // navigate on its own navigator (no getParent — that would
-            // return the root container which doesn't expose `navigate`
-            // for the Focus route).
-            onPress: () => navigation.navigate('Focus', {
-              task: book.title,
-              minutes: 25,
-            }),
+            onPress: () => setSessionOpen(true),
           },
         ]}
       />

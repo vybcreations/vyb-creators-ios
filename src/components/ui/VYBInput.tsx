@@ -18,12 +18,15 @@ export type VYBInputProps = Omit<TextInputProps, 'style'> & {
   icon?: React.ReactNode;
   error?: string;
   multiline?: boolean;
+  /** Override the container border radius. Default 14 (soft rounded); use
+   *  999 for a pill-shaped search-style input. */
+  borderRadius?: number;
   inputStyle?: StyleProp<TextStyle>;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
 export const VYBInput = React.forwardRef<TextInput, VYBInputProps>(function VYBInput({
-  icon, error, multiline, inputStyle, containerStyle,
+  icon, error, multiline, borderRadius, inputStyle, containerStyle,
   placeholderTextColor = C.textFaint,
   ...textInputProps
 }, ref) {
@@ -32,10 +35,10 @@ export const VYBInput = React.forwardRef<TextInput, VYBInputProps>(function VYBI
     <View>
       <View style={[{
         flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', gap: 10,
-        paddingHorizontal: 14,
+        paddingHorizontal: 16,
         paddingVertical: multiline ? 12 : 0,
-        minHeight: multiline ? 60 : 44,
-        borderRadius: 14,
+        minHeight: multiline ? 60 : 48,
+        borderRadius: borderRadius ?? 14,
         backgroundColor: C.bgOverlay, borderColor, borderWidth: 1,
       }, containerStyle]}>
         {icon}

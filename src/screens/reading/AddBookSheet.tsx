@@ -223,12 +223,11 @@ export function AddBookSheet({
           </Pressable>
         ) : undefined}
       />
-      {/* The sheet's parent (DraggableSheet Animated.View) sizes to content
-          (it has maxHeight, not flex). So flex:1 alone collapses to 0 —
-          minHeight gives the sheet enough natural height to actually render
-          the search/form, and the inner ScrollViews then own their own
-          keyboard insets via automaticallyAdjustKeyboardInsets. */}
-      <View style={{ minHeight: 560, paddingHorizontal: 20, paddingBottom: 20 }}>
+      {/* DraggableSheet w/ keyboardAvoiding={false} now forces the sheet to
+          render at maxHeightFraction × screen — so flex:1 here actually
+          fills the sheet body, and the inner ScrollViews can flex into
+          the remaining space below the header + search. */}
+      <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>
 
         {mode === 'search' && (
           <SearchMode
@@ -272,7 +271,7 @@ function SearchMode({
   const hasResults = results.length > 0;
   return (
     <>
-      <View style={{ marginBottom: 12 }}>
+      <View style={{ marginBottom: 14 }}>
         <VYBInput
           ref={searchRef}
           value={query} onChangeText={setQuery}
@@ -281,6 +280,7 @@ function SearchMode({
           autoCapitalize="none" autoCorrect={false}
           returnKeyType="search"
           selectionColor={C.gold}
+          borderRadius={999}
           icon={
             <Pressable onPress={onSubmit} hitSlop={6}>
               <Search size={16} color={query.trim().length > 0 ? C.gold : C.textMuted} />
@@ -288,14 +288,14 @@ function SearchMode({
           }
         />
         {query.length > 0 && (
-          <Pressable onPress={onClear} hitSlop={10} style={{ position: 'absolute', right: 14, top: 14 }}>
+          <Pressable onPress={onClear} hitSlop={10} style={{ position: 'absolute', right: 18, top: 16 }}>
             <X size={14} color={C.textMuted} />
           </Pressable>
         )}
       </View>
 
       <ScrollView
-        style={{ maxHeight: 480 }}
+        style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets

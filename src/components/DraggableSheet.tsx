@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { colors as C, fonts as F, radius as R, KEYBOARD_GAP } from '../theme';
+import { useIsTablet } from '../lib/layout';
 
 // Bottom sheet with slide-up animation + drag-down to dismiss.
 //
@@ -66,6 +67,20 @@ export function DraggableSheet({
   );
   const backdropOpacity = slide.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] });
 
+  // When the KAV is disabled (tall sheets like AddBook) we want the sheet to
+  // ACTUALLY render at maxHeightFraction — otherwise SafeAreaView sizes to
+  // content and a sheet whose body uses minHeight ends up shorter than the
+  // user expects. With keyboardAvoiding=true the sheet stays content-sized
+  // so the existing short sheets don't regress.
+  const fillSheet = !keyboardAvoiding;
+  const SCREEN_H = Dimensions.get('window').height;
+  const sheetHeight = fillSheet ? Math.round(SCREEN_H * maxHeightFraction) : undefined;
+
+  // iPad: cap sheet width so it doesn't stretch full-width and feel like a
+  // giant panel. Centered horizontally.
+  const isTablet = useIsTablet();
+  const tabletWidth = isTablet ? Math.min(560, Dimensions.get('window').width - 48) : undefined;
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss} statusBarTranslucent>
       <View style={{ flex: 1 }}>
@@ -73,11 +88,21 @@ export function DraggableSheet({
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: backdropOpacity }} />
         <Pressable onPress={onDismiss} style={{ flex: 1 }} />
         <ConditionalKAV enabled={keyboardAvoiding}>
-          <Animated.View style={{ transform: [{ translateY }], maxHeight: `${maxHeightFraction * 100}%` as any }}>
+          <Animated.View style={{
+            transform: [{ translateY }],
+            ...(fillSheet
+              ? { height: sheetHeight }
+              : { maxHeight: `${maxHeightFraction * 100}%` as any }),
+            ...(tabletWidth ? { width: tabletWidth, alignSelf: 'center' } : null),
+          }}>
             <SafeAreaView edges={['bottom']} style={{
+              flex: fillSheet ? 1 : undefined,
               backgroundColor: C.bgElevated,
               borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl,
-              borderColor: C.borderMid, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
+              ...(tabletWidth ? { borderBottomLeftRadius: R.xl, borderBottomRightRadius: R.xl } : null),
+              borderColor: C.borderMid,
+              borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
+              ...(tabletWidth ? { borderBottomWidth: 1 } : null),
               shadowColor: '#000', shadowOpacity: 0.6, shadowRadius: 40, shadowOffset: { width: 0, height: -8 },
             }}>
               {/* Centered drag handle at the very top */}
