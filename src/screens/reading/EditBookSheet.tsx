@@ -3,7 +3,7 @@ import {
   View, Text, Pressable, ScrollView, Alert, Animated, PanResponder, LayoutChangeEvent,
 } from 'react-native';
 import { Check, Trash2, BookOpen, Bookmark, PauseCircle, Play } from 'lucide-react-native';
-import { DraggableSheet, SheetHeader } from '../../components/DraggableSheet';
+import { VYBCreationSheet } from '../../components/ui';
 import { GoldButton } from '../../components/primitives';
 import { colors as C, fonts as F } from '../../theme';
 import { Book, updateBook, deleteBook, markBookFinished } from '../../lib/reading';
@@ -90,9 +90,9 @@ export function EditBookSheet({
   };
 
   return (
-    <DraggableSheet visible={visible} onDismiss={onDismiss} showClose={false}>
-      <SheetHeader title="Edit book" onClose={onDismiss} />
+    <VYBCreationSheet visible={visible} onDismiss={onDismiss} title="Edit book" variant="edit">
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
         scrollEnabled={!sliderActive}>
@@ -149,8 +149,10 @@ export function EditBookSheet({
 
             <GoldButton
               variant="complete" size="md" onPress={savePage}
-              style={{ alignSelf: 'stretch', justifyContent: 'center', marginTop: 14, opacity: dirty ? 1 : 0.5 }}>
-              {busy ? '…' : dirty ? 'Save page' : 'No changes'}
+              loading={busy}
+              disabled={!dirty}
+              style={{ alignSelf: 'stretch', justifyContent: 'center', marginTop: 14 }}>
+              {dirty ? 'Save page' : 'No changes'}
             </GoldButton>
           </View>
         ) : (
@@ -183,11 +185,14 @@ export function EditBookSheet({
           )}
         </View>
 
-        {/* Danger */}
+        {/* Destructive — fully rounded pill so it reads as a real
+            premium action, not an old outlined rectangle. */}
         <Pressable onPress={handleDelete} style={{
           flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-          paddingVertical: 14, borderRadius: 14,
-          borderColor: 'rgba(192,86,67,0.4)', borderWidth: 1,
+          height: 48, borderRadius: 999,
+          backgroundColor: 'rgba(192,86,67,0.10)',
+          borderColor: 'rgba(192,86,67,0.45)', borderWidth: 1,
+          alignSelf: 'center', paddingHorizontal: 22,
         }}>
           <Trash2 size={14} color={C.clay} />
           <Text style={{ fontFamily: F.sansBold, fontSize: 13, color: C.clay, letterSpacing: 0.3 }}>
@@ -195,7 +200,7 @@ export function EditBookSheet({
           </Text>
         </Pressable>
       </ScrollView>
-    </DraggableSheet>
+    </VYBCreationSheet>
   );
 }
 

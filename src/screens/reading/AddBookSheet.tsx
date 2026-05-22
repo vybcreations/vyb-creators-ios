@@ -218,6 +218,7 @@ export function AddBookSheet({
       visible={visible}
       onDismiss={onDismiss}
       title={headerTitle}
+      variant="search"
       onBack={mode !== 'search' ? () => setMode('search') : undefined}
     >
       <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 20 }}>

@@ -115,14 +115,15 @@ export function ReadingSessionSheet({
       visible={visible}
       onDismiss={onDismiss}
       title="Reading session"
+      variant="action"
     >
+      {/* Action variant is content-sized — no flex:1, just paddings. The
+          sheet shrinks to the natural height of whichever panel is
+          active. */}
       <ScrollView
-        style={{ flex: 1 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        automaticallyAdjustKeyboardInsets
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Segmented control — one source of truth for the two actions. */}

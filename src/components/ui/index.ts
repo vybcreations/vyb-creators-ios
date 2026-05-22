@@ -30,6 +30,7 @@ export { VYBInput } from './VYBInput';
 export type { VYBInputProps } from './VYBInput';
 export { VYBComposer } from './VYBComposer';
 export { VYBCreationSheet } from './VYBCreationSheet';
+export type { VYBSheetVariant } from './VYBCreationSheet';
 
 // ─── Circles / Challenges / Leaderboard system ─────────────────────────
 export { VYBGlassCard } from './VYBGlassCard';
