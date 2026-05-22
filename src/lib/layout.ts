@@ -34,17 +34,27 @@ export function useIsTablet(): boolean {
 
 /**
  * restingBottom — where a bottom composer should sit when no software
- * keyboard is shown. Clears the floating tab bar + safe area, with extra
- * margin on tablets. Floor of 90 preserves the previously-tuned iPhone look.
+ * keyboard is shown.
+ *
+ * Important: we do NOT add insets.bottom here. The floating tab bar lives
+ * at bottom:24 with a 42pt height — its 66pt visual zone already covers
+ * the home-indicator safe area on iPhone. Adding insets.bottom on top
+ * double-counts that space and pushes the composer ~30pt too high (the
+ * regression that moved the Tasks composer way above the tab bar).
+ *
+ * Tabbed screens (Tasks): composer rests at ~90pt → sits right above
+ * the floating tab bar with a small visual gap. This was the original
+ * tuned value.
+ *
+ * iPad still gets a touch more clearance via IPAD_EXTRA_OFFSET so the
+ * hardware-keyboard accessory + bottom-left language indicator don't
+ * crowd the composer.
  */
 export function useComposerLayout() {
   const insets = useSafeAreaInsets();
   const isTablet = useIsTablet();
   const extra = isTablet ? IPAD_EXTRA_OFFSET : IPHONE_EXTRA_OFFSET;
-  const restingBottom = Math.max(
-    90,
-    TAB_BAR_VISUAL_HEIGHT + insets.bottom + extra,
-  );
+  const restingBottom = Math.max(90, TAB_BAR_VISUAL_HEIGHT + extra);
   return { restingBottom, isTablet, insets };
 }
 
