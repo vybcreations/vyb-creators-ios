@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 import {
-  VYBChip, VYBBookCover, VYBInput, VYBEmpty, VYBCard, VYBCreationSheet,
+  VYBChip, VYBBookCover, VYBInput, VYBEmpty, VYBCard, VYBCreationSheet, VYBToggle,
 } from '../../components/ui';
 import { GoldButton } from '../../components/primitives';
 import { colors as C, fonts as F } from '../../theme';
@@ -199,8 +199,14 @@ export function AddBookSheet({
         if (error) console.warn('post-create update', error.message);
       }
       hSuccess();
-      onSaved();
+      // Dismiss the sheet BEFORE triggering the library refresh. Doing it
+      // the other way around causes the parent to re-render while the
+      // sheet is still mid-animation, which can briefly reveal the parent
+      // screen state mid-transition and feel like we "kicked the user
+      // back" somewhere. With dismiss first, the close animation plays
+      // cleanly and Reading is refreshed underneath as the sheet fades.
       onDismiss();
+      onSaved();
     } catch (e: any) {
       Alert.alert('Could not save', e?.message || 'Unknown error');
     } finally { setBusy(false); }
@@ -471,21 +477,22 @@ function ConfirmView({
         </View>
       )}
 
-      {/* Status */}
+      {/* Status — VYBToggle gives the segmented control a sliding indicator
+          that animates between Reading / Finished / Wishlist. */}
       <SectionLabel>STATUS</SectionLabel>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 22 }}>
-        {(['reading', 'finished', 'next'] as const).map(s => (
-          <View key={s} style={{ flex: 1 }}>
-            <VYBChip
-              label={s === 'reading' ? 'Reading' : s === 'finished' ? 'Finished' : 'Wishlist'}
-              tone="gold"
-              selected={status === s}
-              size="lg"
-              onPress={() => setStatus(s)}
-              style={{ width: '100%', justifyContent: 'center' }}
-            />
-          </View>
-        ))}
+      <View style={{ marginTop: 8, marginBottom: 22 }}>
+        <VYBToggle
+          tone="gold"
+          variant="subtle"
+          size="lg"
+          value={status}
+          onChange={(v) => setStatus(v as 'reading' | 'finished' | 'next')}
+          options={[
+            { label: 'Reading',  value: 'reading' },
+            { label: 'Finished', value: 'finished' },
+            { label: 'Wishlist', value: 'next' },
+          ]}
+        />
       </View>
 
       {/* Conditional fields */}

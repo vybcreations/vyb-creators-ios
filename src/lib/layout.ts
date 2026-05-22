@@ -36,25 +36,28 @@ export function useIsTablet(): boolean {
  * restingBottom — where a bottom composer should sit when no software
  * keyboard is shown.
  *
- * Important: we do NOT add insets.bottom here. The floating tab bar lives
- * at bottom:24 with a 42pt height — its 66pt visual zone already covers
- * the home-indicator safe area on iPhone. Adding insets.bottom on top
- * double-counts that space and pushes the composer ~30pt too high (the
- * regression that moved the Tasks composer way above the tab bar).
+ * Two contexts:
+ *   - 'tabbed' (default) — used by Tasks. The bottom of the screen has
+ *     the floating tab bar (66pt visual zone at the bottom). Resting at
+ *     90pt puts the composer right above the tab bar with a small gap.
  *
- * Tabbed screens (Tasks): composer rests at ~90pt → sits right above
- * the floating tab bar with a small visual gap. This was the original
- * tuned value.
+ *   - 'stack'  — used by BookDetail. The screen is pushed on the stack
+ *     and the tab bar is hidden. The composer/switcher only needs to
+ *     clear the safe-area home indicator + a tiny visual gap. Resting
+ *     at insets.bottom + 12 keeps it close to the bottom edge.
  *
  * iPad still gets a touch more clearance via IPAD_EXTRA_OFFSET so the
  * hardware-keyboard accessory + bottom-left language indicator don't
  * crowd the composer.
  */
-export function useComposerLayout() {
+export function useComposerLayout(opts?: { context?: 'tabbed' | 'stack' }) {
   const insets = useSafeAreaInsets();
   const isTablet = useIsTablet();
   const extra = isTablet ? IPAD_EXTRA_OFFSET : IPHONE_EXTRA_OFFSET;
-  const restingBottom = Math.max(90, TAB_BAR_VISUAL_HEIGHT + extra);
+  const ctx = opts?.context ?? 'tabbed';
+  const restingBottom = ctx === 'stack'
+    ? Math.max(40, insets.bottom + extra)
+    : Math.max(90, TAB_BAR_VISUAL_HEIGHT + extra);
   return { restingBottom, isTablet, insets };
 }
 

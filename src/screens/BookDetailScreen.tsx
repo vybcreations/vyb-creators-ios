@@ -193,7 +193,9 @@ export function BookDetailScreen({ navigation, route }: any) {
   // pattern as Tasks (useComposerLayout + composerLiftFor). Avoids the
   // KAV-based behavior that left the composer under the iOS predictive bar
   // and caused the pager to resize as the composer mounted/unmounted.
-  const { restingBottom } = useComposerLayout();
+  // Stack-screen context (no floating tab bar visible) — composer sits
+  // close to the bottom safe-area edge, not at the 90pt tabbed floor.
+  const { restingBottom } = useComposerLayout({ context: 'stack' });
   const composerBottom = useRef(new Animated.Value(restingBottom)).current;
   useEffect(() => { composerBottom.setValue(restingBottom); }, [restingBottom]);
   useEffect(() => {
@@ -496,7 +498,13 @@ export function BookDetailScreen({ navigation, route }: any) {
           predictive bar. */}
       <Animated.View
         pointerEvents="box-none"
-        style={{ position: 'absolute', left: 0, right: 0, bottom: composerBottom }}
+        // Hide the composer/switcher group when the Reading Session sheet
+        // is open so it doesn't bleed through the sheet's translucent
+        // backdrop and visually fight with the sheet content.
+        style={{
+          position: 'absolute', left: 0, right: 0, bottom: composerBottom,
+          opacity: readingSessionOpen ? 0 : 1,
+        }}
       >
         {composerMounted && (
           <Animated.View

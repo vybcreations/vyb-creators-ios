@@ -53,8 +53,9 @@ const VARIANT_CONFIG: Record<VYBSheetVariant, {
   // never crowds the status bar / Dynamic Island).
   search:   { maxHeightFraction: 0.88, fillToMax: true  },
   // Compact contextual menu. Content-sized so a 3-option menu doesn't
-  // stretch into a giant panel.
-  action:   { maxHeightFraction: 0.55, fillToMax: false },
+  // stretch into a giant panel — but cap higher than half-screen so the
+  // taller panels (e.g. Reading block's duration card) don't get clipped.
+  action:   { maxHeightFraction: 0.72, fillToMax: false },
   // Medium edit form.
   edit:     { maxHeightFraction: 0.75, fillToMax: true  },
   // Tall creation form.
