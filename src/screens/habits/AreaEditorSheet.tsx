@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, ScrollView, Keyboard } from 'react-native';
 import * as L from 'lucide-react-native';
-import { DraggableSheet, SheetHeader } from '../../components/DraggableSheet';
 import { GoldButton } from '../../components/primitives';
-import { VYBInput, VYBChip } from '../../components/ui';
+import { VYBInput, VYBChip, VYBCreationSheet } from '../../components/ui';
 import { colors as C, fonts as F } from '../../theme';
 import { HabitArea, HabitColor, colorToHex, createArea, updateArea, AREA_PRESETS } from '../../lib/habits';
 import { useAuth } from '../../lib/auth';
@@ -61,9 +60,20 @@ export function AreaEditorSheet({
   const tint = colorToHex(color);
 
   return (
-    <DraggableSheet visible={visible} onDismiss={onDismiss} showClose={false}>
-      <SheetHeader title={existing ? 'Edit area' : 'New area'} onClose={onDismiss} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
+    <VYBCreationSheet
+      visible={visible} onDismiss={onDismiss}
+      title={existing ? 'Edit area' : 'New area'}
+      variant="creation"
+    >
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
 
         <Label>NAME</Label>
         <VYBInput
@@ -132,7 +142,7 @@ export function AreaEditorSheet({
           {busy ? '…' : existing ? 'Save changes' : 'Create area'}
         </GoldButton>
       </ScrollView>
-    </DraggableSheet>
+    </VYBCreationSheet>
   );
 }
 
